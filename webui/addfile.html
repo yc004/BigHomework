@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>加密文件柜WebUI添加</title>
+    <link rel="stylesheet" href="./layui/css/layui.css">
+    <script type="text/javascript" src="./layui/layui.js"></script>
+</head>
+
+<body>
+<div class="layui-bg-black" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;">
+    <canvas id="canvas"></canvas>
+</div>
+<div class="layui-container">
+    <div class="layui-card layui-col-md6 layui-col-md-offset3" style="margin-top: 20%;">
+        <div class="layui-card-header layui-card-header-text"
+             style="font-size: 30px; text-align: center;margin-top: 20px; margin-bottom: 20px;">加密文件柜
+        </div>
+        <div class="layui-card-body">
+            <div class="layui-form-item">
+                <label class="layui-form-label">项目名：</label>
+                <div class="layui-input-block">
+                    <input type="text" id="itemName" name="itemName" placeholder="请输入项目名" autocomplete="off"
+                           class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item layui-card">
+                <div id="drag_area" class="layui-card-body"
+                     style="height: 150px; border: 1px dashed #ccc; text-align: center; line-height: 150px; font-size: 20px; color: #ccc;">
+                    拖拽文件到此处
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">文件路径：</label>
+                <div class="layui-input-block">
+                    <input type="text" id="mfile" name="mfile" placeholder="请输入路径或者拖拽文件到上方"
+                           autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <div class="layui-input-block">
+                    <button class="layui-btn layui-btn-normal" id="doAddBTN">添加</button>
+                    <button class="layui-btn layui-btn-primary" id="doBackBTN">返回</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript" src="./circleBg.js"></script>
+</body>
+<script type="text/javascript" src="./initEnv.js"></script>
+<script type="text/javascript">
+    var drag_area = document.getElementById("drag_area");
+    drag_area.addEventListener("dragenter", function (e) {
+        e.stopPropagation();
+        e.preventDefault();
+    });
+    drag_area.addEventListener("dragover", function (e) {
+        e.stopPropagation();
+        e.preventDefault();
+    });
+    drag_area.addEventListener("drop", function (e) {
+        e.stopPropagation();
+        e.preventDefault();
+        console.log(e.dataTransfer.files);
+        var files = e.dataTransfer.files;
+        if (files.length > 0) {
+            var file = files[0];
+            if (typeof (file.path) != "undefined")
+                mfile.value = file.path;
+            else if (typeof (file.name) != "undefined") {
+                mfile.value = "请补齐文件绝对路径：" + file.name;
+                layui.use('layer', function () {
+                    var layer = layui.layer;
+                    layer.msg("当前非旧版本浏览器或者electron环境，无法获取绝对路径。", {
+                        time: 2000
+                    });
+                });
+            }
+        }
+    });
+    var doAddBTN = document.getElementById("doAddBTN");
+    var doBackBTN = document.getElementById("doBackBTN");
+    var itemName = document.getElementById("itemName");
+    var mfile = document.getElementById("mfile");
+    var DATA = {
+        type: "file"
+    };
+    doBackBTN.addEventListener("click", function () {
+        history.go(-1);
+    });
+    doAddBTN.addEventListener("click", function () {
+        if (mfile.value != null && mfile.value != "") {
+            if (mfile.value.indexOf("请补齐文件绝对路径：") == 0) {
+                layui.use('layer', function () {
+                    var layer = layui.layer;
+                    layer.msg("请补齐文件绝对路径", {
+                        time: 2000
+                    });
+                });
+                return;
+            }
+        }
+        addItem({
+            type: DATA.type || "file",
+            itemName: itemName.value,
+            file: mfile.value
+        }, function (ok, data) {
+            if (ok) {
+                layui.use('layer', function () {
+                    var layer = layui.layer;
+                    layer.msg('添加成功', {
+                        time: 2000
+                    });
+                });
+                history.go(-1);
+            } else {
+                layui.use('layer', function () {
+                    var layer = layui.layer;
+                    layer.msg(data, {
+                        time: 2000
+                    });
+                });
+            }
+        })
+    });
+</script>
+
+</html>

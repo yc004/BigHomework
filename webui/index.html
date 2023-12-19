@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>加密文件柜WebUI登录</title>
+    <link rel="stylesheet" href="./layui/css/layui.css">
+    <script type="text/javascript" src="./layui/layui.js"></script>
+</head>
+
+<body>
+<div class="layui-bg-black" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;">
+    <canvas id="canvas"></canvas>
+</div>
+<div class="layui-container">
+    <div class="layui-card layui-col-md6 layui-col-md-offset3" style="margin-top: 20%;">
+        <div class="layui-card-header layui-card-header-text"
+             style="font-size: 30px; text-align: center;margin-top: 20px; margin-bottom: 20px;">加密文件柜
+        </div>
+        <div class="layui-card-body">
+            <div class="layui-form-item">
+                <label class="layui-form-label">账号：</label>
+                <div class="layui-input-block">
+                    <input type="text" id="username" name="username" placeholder="请输入账号" autocomplete="off"
+                           class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">密码：</label>
+                <div class="layui-input-block">
+                    <input type="password" id="password" name="password" placeholder="请输入密码" autocomplete="off"
+                           class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item" style="display: none;" id="password2Div">
+                <label class="layui-form-label">确认密码：</label>
+                <div class="layui-input-block">
+                    <input type="password" id="password2" name="password2" placeholder="请再次输入密码"
+                           autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <div class="layui-input-block">
+                    <div id="loginDiv">
+                        <button class="layui-btn" id="doLoginBTN">登录</button>
+                        <button class="layui-btn layui-btn-normal" id="gotoRegisterBTN">注册</button>
+                    </div>
+                    <div id="registerDiv" style="display: none;">
+                        <button class="layui-btn" id="doRegisterBTN">注册</button>
+                        <button class="layui-btn layui-btn-primary" id="gotoLoginBTN">返回登录页</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="layui-card-footer layui-col-md6 layui-col-md-offset3"
+             style="text-align: center; margin-top: 5%;margin-bottom: 5%; font-size: 10px;">
+            C语言大作业 · 学号： <span id="stuID">未知</span>
+            <!-- <span id="stuID">未知</span>不建议只直接修改这里，记得在处理getStuID请求中返回自己学号  -->
+        </div>
+    </div>
+</div>
+<script type="text/javascript" src="./circleBg.js"></script>
+</body>
+<script type="text/javascript" src="./initEnv.js"></script>
+<script type="text/javascript">
+    var doLoginBTN = document.getElementById("doLoginBTN");
+    var gotoRegisterBTN = document.getElementById("gotoRegisterBTN");
+    var doRegisterBTN = document.getElementById("doRegisterBTN");
+    var gotoLoginBTN = document.getElementById("gotoLoginBTN");
+    var input_username = document.getElementById("username");
+    var input_password = document.getElementById("password");
+    var input_password2 = document.getElementById("password2");
+    var stuID = document.getElementById("stuID");
+    getStudentId(function (ok, id) {
+        if (ok) {
+            stuID.innerText = id;
+        }
+    });
+    doLoginBTN.addEventListener("click", function () {
+        var username = input_username.value;
+        var password = input_password.value;
+        login(username, password, function (ok, msg) {
+            if (ok) {
+                window.location.href = "./main.html";
+            } else {
+                layui.use('layer', function () {
+                    var layer = layui.layer;
+                    layer.msg('登录失败：' + msg, {
+                        time: 2000
+                    });
+                });
+            }
+        });
+    });
+    doRegisterBTN.addEventListener("click", function () {
+        var username = input_username.value;
+        var password = input_password.value;
+        var password2 = input_password2.value;
+        if (password != password2) {
+            layui.use('layer', function () {
+                var layer = layui.layer;
+                layer.msg('两次密码不一致', {
+                    time: 2000
+                });
+            });
+            return;
+        }
+        register(username, password, function (ok, msg) {
+            if (ok) {
+                layui.use('layer', function () {
+                    var layer = layui.layer;
+                    layer.msg('注册成功，自动跳转到登录页面', {
+                        time: 2000
+                    });
+                });
+                //加载登录页面
+                gotoLoginBTN.click();
+                //自动填补账号密码
+                input_username.value = username;
+                input_password.value = password;
+            } else {
+                layui.use('layer', function () {
+                    var layer = layui.layer;
+                    layer.msg('注册失败：' + msg, {
+                        time: 2000
+                    });
+                });
+            }
+        });
+    });
+
+    gotoRegisterBTN.addEventListener("click", function () {
+        document.getElementById("loginDiv").style.display = "none";
+        document.getElementById("registerDiv").style.display = "block";
+        document.getElementById("password2Div").style.display = "block";
+        input_username.value = "";
+        input_password.value = "";
+        input_password2.value = "";
+        document.title = "加密文件柜WebUI注册";
+    });
+
+    gotoLoginBTN.addEventListener("click", function () {
+        document.getElementById("loginDiv").style.display = "block";
+        document.getElementById("registerDiv").style.display = "none";
+        document.getElementById("password2Div").style.display = "none";
+        input_username.value = "";
+        input_password.value = "";
+        input_password2.value = "";
+        document.title = "加密文件柜WebUI登录";
+    });
+    //自动填补账号密码（index.html#username=XXXX&password=XXXX），来自老一代的代码支持，现在用不到了，但是还是保留着，作为API保留功能
+    var url = window.location.href;
+    if (url.indexOf("#") != -1 && url.indexOf("username=") != -1 && url.indexOf("password=") != -1) {
+        var urltail = url.split("#")[1];
+        var username = urltail.split("username=")[1].split("&")[0];
+        var password = urltail.split("password=")[1].split("&")[0];
+        document.getElementById("username").value = username;
+        document.getElementById("password").value = password;
+    }
+    //如果登录了自动跳转走
+    checkToken(function (ok, msg) {
+        if (ok) {
+            layui.use('layer', function () {
+                var layer = layui.layer;
+                layer.msg('您已登录，为您重新跳转到主页面', {
+                    time: 1000,
+                    end: function () {
+                        window.location.href = "./main.html";
+                    }
+                });
+            });
+        }
+    });
+</script>
+
+</html>

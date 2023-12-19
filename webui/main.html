@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>加密文件柜WebUI主页面</title>
+    <link rel="stylesheet" href="./layui/css/layui.css">
+    <script type="text/javascript" src="./layui/layui.js"></script>
+</head>
+
+<body>
+<div class="layui-bg-black" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;">
+    <canvas id="canvas"></canvas>
+</div>
+<div class="layui-container layui-row layui-card" style="margin: 3%; width: 94%; height: 94%; padding: 0;">
+    <div class="layui-col-md3">
+        <div class="layui-card-body layui-row" style="text-align: center;">
+            <div class="layui-input-inline">
+                <input type="text" name="title" placeholder="请输入待搜索内容" autocomplete="off" class="layui-input"
+                       id="searchInput">
+            </div>
+            <button class="layui-btn" lay-submit="" lay-filter="search" id="searchBTN">搜索</button>
+        </div>
+
+        <div class="layui-row">
+            <div class="layui-card-body">类型选择</div>
+            <div class="layui-input-block">
+                <input type="checkbox" name="type" title="文件" checked=true><span
+                    class="layui-text">文件</span></input>
+            </div>
+            <div class="layui-input-block">
+                <input type="checkbox" name="type" title="文字" checked=true><span
+                    class="layui-text">文字</span></input>
+            </div>
+            <div class="layui-input-block">
+                <input type="checkbox" name="type" title="账号密码" checked=true><span
+                    class="layui-text">账号密码</span></input>
+            </div>
+        </div>
+        <div class="layui-row">
+            <div class="layui-card-body">排序方式</div>
+            <div class="layui-input-block layui-row">
+                <input type="radio" name="order" title="升序" checked=true><span class="layui-text">升序</span></input>
+                <input type="radio" name="order" title="降序"><span class="layui-text">降序</span></input>
+            </div>
+        </div>
+        <div class="layui-row">
+            <div class="layui-card-body">排序依据</div>
+            <div class="layui-input-block">
+                <input type="radio" name="orderType" title="UUID排序" checked=true><span
+                    class="layui-text">UUID排序</span></input>
+            </div>
+            <div class="layui-input-block">
+                <input type="radio" name="orderType" title="创建时间排序"><span
+                    class="layui-text">创建时间排序</span></input>
+            </div>
+            <div class="layui-input-block">
+                <input type="radio" name="orderType" title="修改时间排序"><span
+                    class="layui-text">修改时间排序</span></input>
+            </div>
+            <div class="layui-input-block">
+                <input type="radio" name="orderType" title="标题名排序"><span
+                    class="layui-text">标题名排序</span></input>
+            </div>
+        </div>
+        <div class="layui-row">
+            <div class="layui-card-body">新建项目</div>
+            <div class="layui-input-block" style="margin-bottom: 5%;">
+                <button class="layui-btn layui-btn-normal" lay-submit="" lay-filter="newFile" id="newFileBTN">新建文件
+                </button>
+            </div>
+            <div class="layui-input-block" style="margin-bottom: 5%;">
+                <button class="layui-btn layui-btn-normal" lay-submit="" lay-filter="newString" id="newStringBTN">
+                    新建字符串
+                </button>
+            </div>
+            <div class="layui-input-block" style="margin-bottom: 5%;">
+                <button class="layui-btn layui-btn-normal" lay-submit="" lay-filter="newAccPwd" id="newAccPwdBTN">
+                    新建账号密码
+                </button>
+            </div>
+        </div>
+        <div class="layui-row" style="margin-bottom: 10%;margin-top: 10%;">
+            <div class="layui-input-block">
+                <button class="layui-btn layui-btn-danger" lay-submit="" lay-filter="logout" id="logoutBTN">退出账号
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="layui-col-md9">
+        <div class="layui-card-body">
+            <table class="layui-table layui-form" id="showTable" name="showTable" lay-filter="showTable">
+                <!-- <thead>
+                    <tr>
+                        <th>UUID</th>
+                        <th>类型</th>
+                        <th>名称</th>
+                        <th>创建时间</th>
+                        <th>更新时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead> -->
+            </table>
+
+        </div>
+    </div>
+</div>
+
+
+</div>
+<script type="text/javascript" src="./circleBg.js"></script>
+</body>
+<script type="text/javascript" src="./initEnv.js"></script>
+<script type="text/javascript">
+    //往列表里面添加数据
+    function addDataToTable(data) {
+        var table = layui.table;
+        table.render({
+            elem: '#showTable',
+            data: data,
+            cols: [
+                [{
+                    field: 'uuid',
+                    title: 'UUID',
+                    width: 100,
+                }, {
+                    field: 'type',
+                    title: '类型',
+                    width: 90,
+                    templet: function (d) {
+                        if (d.type == 'file') {
+                            return '文件';
+                        } else if (d.type == 'string') {
+                            return '字符串';
+                        } else if (d.type == 'accpwd') {
+                            return '账号密码';
+                        }
+                    }
+                }, {
+                    field: 'itemName',
+                    title: '名称',
+                    width: 200,
+                }, {
+                    field: 'createTime',
+                    title: '创建时间',
+                    width: 160
+                }, {
+                    field: 'updateTime',
+                    title: '更新时间',
+                    width: 160
+                }, {
+                    title: '操作',
+                    width: 160,
+                    templet: function (d) {
+                        //仅仅accpwd和string类型的数据允许编辑
+                        if (d.type == 'accpwd' || d.type == 'string') {
+                            return '<a class="layui-btn layui-btn-xs" lay-event="detail">查看</a><a class="layui-btn layui-btn-xs" lay-event="edit">编辑</a><a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">删除</a>';
+                        } else {
+                            return '<a class="layui-btn layui-btn-xs" lay-event="detail">查看</a><a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">删除</a>';
+                        }
+                    }
+                }]
+            ],
+            page: true,
+        });
+        //监听工具条（lay-filter="showTable"，白忙活半天，监听错了）
+        var curUrlBase = window.location.href;
+        curUrlBase = curUrlBase.split('?')[0];
+        curUrlBase = curUrlBase.split('#')[0];
+        curUrlBase = curUrlBase.substring(0, curUrlBase.lastIndexOf('/') + 1);
+
+        table.on('tool(showTable)', function (obj) {
+            var data = obj.data;
+            if (obj.event === 'del') {
+                layer.confirm('真的删除么？', function (index) {
+                    //警告，这里可能存在数据不同步情况
+                    //发送删除指定uuid的数据请求
+                    deleteItem(data.uuid, function (ok, msg) {
+                        if (ok) {
+                            layer.msg('删除成功', {
+                                time: 2000
+                            });
+                            obj.del();
+                        } else {
+                            layer.msg('删除失败', {
+                                time: 2000
+                            });
+                        }
+                    });
+                });
+            } else if (obj.event === 'edit') {
+                document.location.href = curUrlBase + 'edit.html#uuid=' + data.uuid + '&type=' + data.type
+            } else if (obj.event === 'detail') {
+                document.location.href = curUrlBase + 'watch.html#uuid=' + data.uuid + '&type=' + data.type
+            }
+        });
+    }
+</script>
+<script type="text/javascript">
+    //如果没登录，跳转到登录页
+    checkToken(function (ok, msg) {
+        if (ok) {
+            //已登录，开启请求数据
+            getDataList("asc", "uuid", "*", "", function (ok, data) {
+                if (ok) {
+                    addDataToTable(data);
+                } else {
+                    addDataToTable([]);
+                    layer.alert('获取数据失败，请刷新或者搜索数据。', function (index) {
+                        layer.close(index);
+                    });
+                }
+            });
+        } else {
+            window.location.href = "./index.html";
+        }
+    });
+    var logoutBTN = document.getElementById('logoutBTN');
+    logoutBTN.addEventListener('click', function () {
+        quitToken(function () {
+            window.location.href = "./index.html";
+        });
+    });
+    var searchBTN = document.getElementById('searchBTN');
+    searchBTN.addEventListener('click', function () {
+        var searchInput = document.getElementById('searchInput');
+        var searchValue = searchInput.value;
+        //类型选择
+        var typeList = document.getElementsByName('type');
+        var typeListStr = "";
+        for (var i = 0; i < typeList.length; i++) {
+            if (typeList[i].checked) {
+                typeListStr += typeList[i].title + "|";
+            }
+        }
+        if (typeListStr == "") {
+            typeListStr = "*";
+        } else {
+            typeListStr = typeListStr.substring(0, typeListStr.length - 1);
+        }
+        //排序方式
+        var order = document.getElementsByName('order');
+        var orderStr = "";
+        for (var i = 0; i < order.length; i++) {
+            if (order[i].checked) {
+                orderStr = order[i].title;
+            }
+        }
+        //排序依据
+        var orderType = document.getElementsByName('orderType');
+        var orderTypeStr = "";
+        for (var i = 0; i < orderType.length; i++) {
+            if (orderType[i].checked) {
+                orderTypeStr = orderType[i].title;
+            }
+        }
+        //发送搜索请求
+        getDataList(orderStr, orderTypeStr, typeListStr, searchValue, function (ok, data) {
+            if (ok) {
+                addDataToTable(data);
+            } else {
+                addDataToTable([]);
+                layer.alert('获取数据失败，请刷新或者搜索数据。', function (index) {
+                    layer.close(index);
+                });
+            }
+        });
+    });
+    var newAccPwdBTN = document.getElementById('newAccPwdBTN');
+    var newStringBTN = document.getElementById('newStringBTN');
+    var newFileBTN = document.getElementById('newFileBTN');
+    newAccPwdBTN.addEventListener('click', function () {
+        window.location.href = "./addform.html#type=accpwd";
+    });
+    newStringBTN.addEventListener('click', function () {
+        window.location.href = "./addform.html#type=string";
+    });
+    newFileBTN.addEventListener('click', function () {
+        window.location.href = "./addfile.html";
+    });
+</script>
+
+</html>
