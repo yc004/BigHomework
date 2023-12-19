@@ -5,7 +5,6 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
-#include <sys/types.h>
 #include <sys/time.h>
 #include "socketLib.h"
 #ifdef __WIN32__
@@ -15,7 +14,7 @@
 #include <shellapi.h>
 #endif
 
-static inline char* encHex(char* data, int size) {
+static inline char* encHex(const char* data, int size) {
     if (data == NULL) return NULL;
     if (size == 0) size = strlen(data);
     char* hex = malloc(size * 2 + 1);
@@ -28,9 +27,9 @@ static inline char* encHex(char* data, int size) {
 
 #define __HEX__(x)  (((x) >= '0' && (x) <= '9') ? ((x) - '0') : (((x) >= 'a' && (x) <= 'f') ? ((x) - 'a' + 10) : (((x) >= 'A' && (x) <= 'F') ? ((x) - 'A' + 10) : 0)))
 
-static inline char* decHex(char* hex, int* size) {
+static char* decHex(const char* hex, int* size) {
     if (hex == NULL) return NULL;
-    int len = strlen(hex);
+    const int len = strlen(hex);
     char* data = malloc(len / 2 + 1);
     for (int i = 0; i < len; i += 2) {
         data[i / 2] = (__HEX__(hex[i]) << 4) | (__HEX__(hex[i + 1]));
@@ -41,9 +40,9 @@ static inline char* decHex(char* hex, int* size) {
     return data;
 }
 
-static inline char* fmtYmdHMS(char* fmt, long long timestamp) {
+static char* fmtYmdHMS(const char* fmt, const long long timestamp) {
     time_t t = time(NULL);
-    struct tm* tm = localtime(&t);
+    const struct tm* tm = localtime(&t);
     if (timestamp != 0) {
         t = timestamp / 1000;
         tm = localtime(&t);
@@ -59,7 +58,7 @@ static inline char* fmtYmdHMS(char* fmt, long long timestamp) {
 }
 
 //Unixʱ�����ʡ�Ժ��룩
-static inline long long getTimestamp() {
+static long long getTimestamp() {
     time_t t = time(NULL);
     struct tm* tm = localtime(&t);
     time_t timep;
@@ -68,7 +67,7 @@ static inline long long getTimestamp() {
 }
 
 //Unixʱ�����ʡ�Ժ��룩
-static inline long long getTimestampByStr(char* str) {
+static long long getTimestampByStr(char* str) {
     struct tm tm;
     time_t timep;
     sscanf(str, "%d-%d-%d %d:%d:%d", &tm.tm_year, &tm.tm_mon, &tm.tm_mday, &tm.tm_hour, &tm.tm_min, &tm.tm_sec);
@@ -80,7 +79,7 @@ static inline long long getTimestampByStr(char* str) {
 }
 
 //base64����
-static inline char* encBase64(char* data, int size) {
+static char* encBase64(char* data, int size) {
     if (data == NULL) return NULL;
     if (size == 0) size = strlen(data);
     char* base64 = malloc(size * 2 + 1);
@@ -111,7 +110,7 @@ static inline char* encBase64(char* data, int size) {
 }
 
 //base64����
-static inline char* decBase64(char* base64, int* size) {
+static char* decBase64(char* base64, int* size) {
     if (base64 == NULL) return NULL;
     int len = strlen(base64);
     char* data = malloc(len + 1);
@@ -137,7 +136,7 @@ static inline char* decBase64(char* base64, int* size) {
 }
 
 //crc32(ע�⣬�����Ǽ��ܣ����ǹ�ϣ)
-static inline unsigned int crc32(char* data, int size) {
+static unsigned int crc32(char* data, int size) {
     if (data == NULL) return 0;
     if (size == 0) size = strlen(data);
     unsigned int crc = 0xFFFFFFFF;
@@ -156,7 +155,7 @@ static inline unsigned int crc32(char* data, int size) {
 }
 
 //rc4����/����
-static inline char* Rc4Core(char* data, int size, char* key, int keySize) {
+static char* Rc4Core(char* data, int size, char* key, int keySize) {
     if (data == NULL) return NULL;
     if (size == 0) size = strlen(data);
     if (key == NULL) return NULL;
@@ -192,7 +191,7 @@ static inline char* Rc4Core(char* data, int size, char* key, int keySize) {
 #define encRc4(...) Rc4Core(__VA_ARGS__)
 #define decRc4(...) Rc4Core(__VA_ARGS__)
 //�ļ���ȡ
-static inline char* readFile(char* path, int* size) {
+static char* readFile(char* path, int* size) {
     FILE* fp = fopen(path, "rb");
     if (fp == NULL) return NULL;
     fseek(fp, 0, SEEK_END);
@@ -212,7 +211,7 @@ static inline char* readFile(char* path, int* size) {
 }
 
 //�ļ�д��
-static inline int writeFile(char* path, char* data, int size) {
+static int writeFile(char* path, char* data, int size) {
     if (path == NULL) return 0;
     if (data == NULL) return 0;
     if (size == 0) size = strlen(data);
@@ -224,7 +223,7 @@ static inline int writeFile(char* path, char* data, int size) {
 }
 
 //�ļ�׷��
-static inline int appendFile(char* path, char* data, int size) {
+static int appendFile(char* path, char* data, int size) {
     if (path == NULL) return 0;
     if (data == NULL) return 0;
     if (size == 0) size = strlen(data);
@@ -236,7 +235,7 @@ static inline int appendFile(char* path, char* data, int size) {
 }
 
 //��ȡ�ļ���С
-static inline int getFileSize(char* path) {
+static int getFileSize(char* path) {
     if (path == NULL) return 0;
     FILE* fp = fopen(path, "rb");
     if (fp == NULL) return 0;
@@ -247,7 +246,7 @@ static inline int getFileSize(char* path) {
 }
 
 //�ļ��Ƿ����
-static inline int fileExists(char* path) {
+static int fileExists(char* path) {
     if (path == NULL) return 0;
     FILE* fp = fopen(path, "rb");
     if (fp == NULL) return 0;
@@ -256,7 +255,7 @@ static inline int fileExists(char* path) {
 }
 
 //Ŀ¼�Ƿ����
-static inline int dirExists(char* path) {
+static int dirExists(char* path) {
     if (path == NULL) return 0;
 #ifdef _WIN32
     //windows
@@ -272,7 +271,7 @@ static inline int dirExists(char* path) {
 }
 
 //ɾ���ļ���Ŀ¼
-static inline int deleteFile(char* path) {
+static int deleteFile(char* path) {
     if (path == NULL) return 0;
     char buf[4096];
     int len = strlen(path);
@@ -318,7 +317,7 @@ static inline int deleteFile(char* path) {
 }
 
 // ����Ŀ¼
-static inline int createDir(char* path) {
+static int createDir(char* path) {
     if (path == NULL) return 0;
     char buf[4096];
     int len = strlen(path);
@@ -367,7 +366,7 @@ static inline int createDir(char* path) {
 }
 
 //��ȡĿ¼�������ļ�����Ŀ¼��
-static inline char** getFiles(char* path, int* count) {
+static char** getFiles(char* path, int* count) {
     if (path == NULL) return NULL;
     if (count == NULL) return NULL;
     char buf[4096];

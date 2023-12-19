@@ -48,12 +48,12 @@ static inline void socket_cleanup() {
 #endif
 
 static inline int socket_create() {
-    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    const int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd == -1) {
         perror("socket_create: failed to create socket\n");
         return -1;
     }
-    int opt = 1;
+    const int opt = 1;
     if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (const char *)&opt, sizeof(opt)) == -1) {
         perror("socket_create: failed to set SO_REUSEADDR option\n");
         return -1;
@@ -95,7 +95,7 @@ static inline int socket_listen(int sockfd) {
 static inline int socket_accept(int sockfd) {
     struct sockaddr_in addr;
     socklen_t addrlen = sizeof(addr);
-    int connfd = accept(sockfd, (struct sockaddr *)&addr, &addrlen);
+    const int connfd = accept(sockfd, (struct sockaddr *)&addr, &addrlen);
     if (connfd == -1) {
         perror("socket_accept: failed to accept connection\n");
         return -1;
@@ -104,8 +104,7 @@ static inline int socket_accept(int sockfd) {
 }
 
 static inline int socket_connect(int sockfd, const char* host, int port) {
-    struct sockaddr_in addr;
-    memset(&addr, 0, sizeof(addr));
+    struct sockaddr_in addr = {0};
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
     addr.sin_addr.s_addr = INADDR_ANY;
@@ -127,7 +126,7 @@ static inline int socket_connect(int sockfd, const char* host, int port) {
 static inline int socket_send(int sockfd, const char* data, int len) {
     int sent = 0;
     while (sent < len) {
-        int n = send(sockfd, data + sent, len - sent, 0);
+        const int n = send(sockfd, data + sent, len - sent, 0);
         if (n == -1) {
             perror("socket_send: failed to send data\n");
             return -1;
@@ -143,7 +142,7 @@ static inline int socket_send(int sockfd, const char* data, int len) {
 static inline int socket_recv(int sockfd, char* buffer, int len) {
     int received = 0;
     while (received < len) {
-        int n = recv(sockfd, buffer + received, len - received, 0);
+        const int n = recv(sockfd, buffer + received, len - received, 0);
         printf("Info: socket_recv: received %d bytes\n", n);
         if (n == -1) {
             printf("Info: socket_recv: failed to receive data, maybe connection timeout.\n");
@@ -184,8 +183,8 @@ static int set_socket_timeout(int fd, int read_sec, int write_sec) {
     return 0;
 }
 
-static inline int recv_msg(int sockfd, char* buffer, int len) {
-    int n = socket_recv(sockfd, buffer, len);
+static int recv_msg(const int sockfd, char* buffer, const int len) {
+    const int n = socket_recv(sockfd, buffer, len);
     if (n == -1) {
         printf("Info: failed to receive message from socket %d\n", sockfd);
         return -1;
@@ -202,7 +201,7 @@ static inline int recv_msg(int sockfd, char* buffer, int len) {
     return n;
 }
 
-static inline void send_msg(int sockfd, const char* msg, int len) {
+static void send_msg(const int sockfd, const char* msg, int len) {
     if (len == 0)len = strlen(msg);
     if (socket_send(sockfd, msg, len) == -1) {
         char err[100];
@@ -249,7 +248,7 @@ typedef struct SocketData {
     int paramSize;
 } SocketData;
 
-static inline void freeSocketData(SocketData* data) {
+static void freeSocketData(SocketData* data) {
     if (data == NULL)return;
     if (data->buff) free(data->buff); //很多数据都是指向buff的，所以只需要释放buff就可以了
     if (data->headers) free(data->headers);
@@ -258,7 +257,7 @@ static inline void freeSocketData(SocketData* data) {
     free(data);
 }
 
-static inline SocketData* parseSocketData(char* buff, int buffSize) {
+static SocketData* parseSocketData(char* buff, const int buffSize) {
     SocketData* data = (SocketData *)malloc(sizeof(SocketData));
     data->buff = buff;
     data->buffSize = buffSize;
@@ -273,8 +272,8 @@ static inline SocketData* parseSocketData(char* buff, int buffSize) {
     data->paramSize = 0;
     //解析请求头
     char* p = buff;
-    char* end = buff + buffSize;
-    char* lineEnd = NULL;
+    const char* end = buff + buffSize;
+    const char* lineEnd = NULL;
     char* lineStart = p;
     while (p < end) {
         if (*p == '\r' && *(p + 1) == '\n') {
@@ -450,7 +449,7 @@ static inline SocketData* parseSocketData(char* buff, int buffSize) {
 }
 
 //paramsGET
-static inline SocketPair* paramsGET(SocketData* data, char* key) {
+static SocketPair* paramsGET(const SocketData* data, const char* key) {
     for (int i = 0; i < data->paramSize; i++) {
         if (strcmp(data->params[i].key, key) == 0) {
             return &data->params[i];
@@ -460,7 +459,7 @@ static inline SocketPair* paramsGET(SocketData* data, char* key) {
 }
 
 //400
-static inline void do400BadRequest(SocketData* data, SOCKET connfd) {
+static void do400BadRequest(SocketData* data, const SOCKET connfd) {
     freeSocketData(data);
     send_msg(connfd, "HTTP/1.1 400 Bad Request\r\nAccess-Control-Allow-Origin: *\r\n\r\n", 0);
     socket_close(connfd);

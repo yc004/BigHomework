@@ -11,8 +11,28 @@
 char* webuiapi_login(char* acc, char* pwd) {
     // 这里mock一个token，实际应用中请绑定账号和密码与token关系
     char* token = malloc(129);
-    strcpy(token, "1234567890ABCDEFFEDCBA0987654321");
+
+    int size;
+    char* file = readFile("../test.csv", &size);
+    // printf("******************%d", size);
+    // printf("******************%s", file);
+    const TinyCsvWebUIData* list = TinyCsv_load(file);
+    const TinyCsvWebUIData* current = list;
+
+    // printf("*****************%s %s", acc, pwd);
+    // 匹配用户名密码 正确返回token
+    while (current != NULL) {
+        if (strcmp(current->data.accpwd.acc, acc) == 1 && strcmp(current->data.accpwd.pwd, pwd) == 1) {
+            strcpy(token, "1234567890ABCDEFFEDCBA0987654321");
+            printf("*****************%s %s", acc, pwd);
+            free(file);
+            return token;
+        }
+        current = current->next;
+    }
     // return token;
+    // 如果用户名不存在或密码错误则返回NULL
+    free(file);
     return NULL;
 }
 
@@ -23,9 +43,11 @@ char* webuiapi_login(char* acc, char* pwd) {
 */
 int webuiapi_register(char* acc, char* pwd) {
     // 这里mock一个code为0的返回值
-    int code = 0;
-    // int code = 1;
+    // int code = 0;
+    int code = 1;
     // int code = 2;
+
+
     return code;
 }
 
@@ -38,8 +60,8 @@ int webuiapi_register(char* acc, char* pwd) {
 */
 int webuiapi_checkToken(char* token) {
     // 这里mock一个code为0的返回值
-    int code = 0;
-    // int code = 1;
+    // int code = 0;
+    int code = 1;
     return code;
 }
 
@@ -155,7 +177,7 @@ int webuiapi_decryptFile(char* token, char* uuid) {
 }
 
 /**
-    请完善此函数，实现申请添加数据能
+    请完善此函数，实现申请添加数据功能
     参数：token、uuid、itemName、string、acc、pwd、file
     其中string、acc、pwd、file为可选参数，请根据itype判断是否使用
     需要管理token与账号的关系，账号也会退出登录时，token也要失效，没退出但是直接重登陆，token也要失效

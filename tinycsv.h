@@ -54,7 +54,7 @@ typedef struct TinyCsvWebUIData {
 #define TINY_CSV_DATA_GET_CREATETIME(data) ((data)->createTime)
 #define TINY_CSV_DATA_GET_UPDATETIME(data) ((data)->updateTime)
 
-static inline void freeTinyCsvWebUIData(TinyCsvWebUIData* data) {
+static void freeTinyCsvWebUIData(TinyCsvWebUIData* data) {
     if (data == NULL)return;
     if (data->uuid != NULL) free(data->uuid);
     if (data->itemName != NULL) free(data->itemName);
@@ -75,21 +75,21 @@ static inline void freeTinyCsvWebUIData(TinyCsvWebUIData* data) {
     free(data);
 }
 
-static inline void freeTinyCsvWebUIDataList(TinyCsvWebUIData* data) {
+static void freeTinyCsvWebUIDataList(TinyCsvWebUIData* data) {
     if (data == NULL)return;
     TinyCsvWebUIData* next = data->next;
     freeTinyCsvWebUIData(data);
     freeTinyCsvWebUIDataList(next);
 }
 
-static inline TinyCsvWebUIData* new_TinyCsvWebUIData() {
+static TinyCsvWebUIData* new_TinyCsvWebUIData() {
     TinyCsvWebUIData* data = (TinyCsvWebUIData *)malloc(sizeof(TinyCsvWebUIData));
     memset(data, 0, sizeof(TinyCsvWebUIData));
     return data;
 }
 
-static inline TinyCsvWebUIData* new_TinyCsvWebUIData_FILE(char* uuid, char* itemName, char* file, char* createTime,
-                                                          char* updateTime) {
+static TinyCsvWebUIData* new_TinyCsvWebUIData_FILE(char* uuid, char* itemName, char* file, char* createTime,
+                                                   char* updateTime) {
     TinyCsvWebUIData* data = new_TinyCsvWebUIData();
     data->uuid = malloc(strlen(uuid) + 1);
     strcpy(data->uuid, uuid);
@@ -102,8 +102,8 @@ static inline TinyCsvWebUIData* new_TinyCsvWebUIData_FILE(char* uuid, char* item
     return data;
 }
 
-static inline TinyCsvWebUIData* new_TinyCsvWebUIData_STRING(char* uuid, char* itemName, char* string, char* createTime,
-                                                            char* updateTime) {
+static TinyCsvWebUIData* new_TinyCsvWebUIData_STRING(char* uuid, char* itemName, char* string, char* createTime,
+                                                     char* updateTime) {
     TinyCsvWebUIData* data = new_TinyCsvWebUIData();
     data->uuid = malloc(strlen(uuid) + 1);
     strcpy(data->uuid, uuid);
@@ -116,8 +116,8 @@ static inline TinyCsvWebUIData* new_TinyCsvWebUIData_STRING(char* uuid, char* it
     return data;
 }
 
-static inline TinyCsvWebUIData* new_TinyCsvWebUIData_ACCPWD(char* uuid, char* itemName, char* acc, char* pwd,
-                                                            char* createTime, char* updateTime) {
+static TinyCsvWebUIData* new_TinyCsvWebUIData_ACCPWD(char* uuid, char* itemName, char* acc, char* pwd,
+                                                     char* createTime, char* updateTime) {
     TinyCsvWebUIData* data = new_TinyCsvWebUIData();
     data->uuid = malloc(strlen(uuid) + 1);
     strcpy(data->uuid, uuid);
@@ -133,7 +133,7 @@ static inline TinyCsvWebUIData* new_TinyCsvWebUIData_ACCPWD(char* uuid, char* it
 
 #define Concat_TinyCsvWebUIData(data, nxt) (data)->next = (nxt)
 
-static inline char* TinyCsv_dump(TinyCsvWebUIData* data) {
+static char* TinyCsv_dump(TinyCsvWebUIData* data) {
     //第一遍遍历，计算长度
     int memsize = sizeof(CSV_HEADER) + 1 + 2; //HEADER + \r\n
     TinyCsvWebUIData* p = data;
@@ -341,7 +341,7 @@ static inline char* TinyCsv_dump(TinyCsvWebUIData* data) {
     return realloc(mem, pMem - mem + 1); //收缩内存占用
 }
 
-static inline TinyCsvWebUIData* TinyCsv_load(char* csv) {
+static TinyCsvWebUIData* TinyCsv_load(char* csv) {
     // 读取表头，找到对应的列，所以先整好idxOf
     int idxOf_uuid = 0;
     int idxOf_type = idxOf_uuid + 1;
@@ -356,6 +356,7 @@ static inline TinyCsvWebUIData* TinyCsv_load(char* csv) {
     // 读取表头绑定
     char* pHeader = p;
     char lastChar = '\0';
+    // 将指针移向表头的结尾 即表中第一个数据的开头
     while (*p != '\r' && *p != '\n' && *p != '\0') {
         p++;
     }
