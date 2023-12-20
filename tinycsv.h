@@ -486,7 +486,8 @@ static TinyCsvWebUIData* TinyCsv_load(char* csv) {
                 lastChar2 = *pEnd; //记录临时修改的字符
                 *pEnd = '\0';
                 if (idx == idxOf_itemName) {
-                    pNew->itemName = decHex(p, NULL);
+                    char* dataTemp = p;
+                    pNew->itemName = dataTemp;
                 }
                 else if (idx == idxOf_file) {
                     pNew->data.file = decHex(p, NULL);
@@ -495,10 +496,16 @@ static TinyCsvWebUIData* TinyCsv_load(char* csv) {
                     pNew->data.string = decHex(p, NULL);
                 }
                 else if (idx == idxOf_acc) {
-                    pNew->data.accpwd.acc = decHex(p, NULL);
+                    // pNew->data.accpwd.acc = p;
+                    char* dataTemp = p;
+                    pNew->data.accpwd.acc = dataTemp;
+                    // pNew->data.accpwd.acc = decHex(p, NULL);
                 }
                 else if (idx == idxOf_pwd) {
-                    pNew->data.accpwd.pwd = decHex(p, NULL);
+                    // pNew->data.accpwd.pwd=p;
+                    char* dataTemp = p;
+                    pNew->data.accpwd.pwd = dataTemp;
+                    // pNew->data.accpwd.pwd = decHex(p, NULL);
                 }
                 *pEnd = lastChar2; //恢复临时修改的字符
                 p = pEnd;
