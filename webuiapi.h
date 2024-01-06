@@ -14,7 +14,7 @@
 /// ==================================== WebUIAPI ====================================
 char* webuiapi_login(char* acc, char* pwd);
 
-int webuiapi_register(char* acc, char* pwd);
+int webuiapi_register(const char* acc, const char* pwd);
 
 int webuiapi_checkToken(char* token);
 

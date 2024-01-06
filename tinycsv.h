@@ -102,8 +102,8 @@ static TinyCsvWebUIData* new_TinyCsvWebUIData_FILE(char* uuid, char* itemName, c
     return data;
 }
 
-static TinyCsvWebUIData* new_TinyCsvWebUIData_STRING(char* uuid, char* itemName, char* string, char* createTime,
-                                                     char* updateTime) {
+static TinyCsvWebUIData* new_TinyCsvWebUIData_STRING(const char* uuid, const char* itemName, char* string, const char* createTime,
+                                                     const char* updateTime) {
     TinyCsvWebUIData* data = new_TinyCsvWebUIData();
     data->uuid = malloc(strlen(uuid) + 1);
     strcpy(data->uuid, uuid);
@@ -116,8 +116,8 @@ static TinyCsvWebUIData* new_TinyCsvWebUIData_STRING(char* uuid, char* itemName,
     return data;
 }
 
-static TinyCsvWebUIData* new_TinyCsvWebUIData_ACCPWD(char* uuid, char* itemName, char* acc, char* pwd,
-                                                     char* createTime, char* updateTime) {
+static TinyCsvWebUIData* new_TinyCsvWebUIData_ACCPWD(const char* uuid, const char* itemName, char* acc, char* pwd,
+                                                     const char* createTime, const char* updateTime) {
     TinyCsvWebUIData* data = new_TinyCsvWebUIData();
     data->uuid = malloc(strlen(uuid) + 1);
     strcpy(data->uuid, uuid);
@@ -486,8 +486,9 @@ static TinyCsvWebUIData* TinyCsv_load(char* csv) {
                 lastChar2 = *pEnd; //记录临时修改的字符
                 *pEnd = '\0';
                 if (idx == idxOf_itemName) {
-                    char* dataTemp = p;
-                    pNew->itemName = dataTemp;
+                    // char* dataTemp = p;
+                    // pNew->itemName = dataTemp;
+                    pNew->itemName = decHex(p, NULL);
                 }
                 else if (idx == idxOf_file) {
                     pNew->data.file = decHex(p, NULL);
@@ -497,15 +498,15 @@ static TinyCsvWebUIData* TinyCsv_load(char* csv) {
                 }
                 else if (idx == idxOf_acc) {
                     // pNew->data.accpwd.acc = p;
-                    char* dataTemp = p;
-                    pNew->data.accpwd.acc = dataTemp;
-                    // pNew->data.accpwd.acc = decHex(p, NULL);
+                    // char* dataTemp = p;
+                    // pNew->data.accpwd.acc = dataTemp;
+                    pNew->data.accpwd.acc = decHex(p, NULL);
                 }
                 else if (idx == idxOf_pwd) {
                     // pNew->data.accpwd.pwd=p;
-                    char* dataTemp = p;
-                    pNew->data.accpwd.pwd = dataTemp;
-                    // pNew->data.accpwd.pwd = decHex(p, NULL);
+                    // char* dataTemp = p;
+                    // pNew->data.accpwd.pwd = dataTemp;
+                    pNew->data.accpwd.pwd = decHex(p, NULL);
                 }
                 *pEnd = lastChar2; //恢复临时修改的字符
                 p = pEnd;

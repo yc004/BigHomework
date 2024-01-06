@@ -1,5 +1,42 @@
 #include "webuiapi.h"
 
+struct account {
+    char* acc;
+    char* pwd;
+    char* token;
+} account;
+
+char* generateToken() {
+    char* token = malloc(sizeof(char) * 17);
+    srand(time(NULL));
+
+    const char charset[] = "0123456789ABCDEF";
+
+    for (int i = 0; i < 16; ++i) {
+        const int index = rand() % (int)(sizeof charset - 1);
+        token[i] = charset[index];
+    }
+    token[16] = '\0';
+
+    return token;
+}
+
+char* generateItemName() {
+    char* itemName = malloc(sizeof(char) * 11);
+    srand(time(NULL));
+
+    const char charset[] = "0123456789";
+
+    for (int i = 0; i < 10; ++i) {
+        const int index = rand() % (int)(sizeof charset - 1);
+        itemName[i] = charset[index];
+    }
+
+    itemName[10] = '\0';
+
+    return itemName;
+}
+
 /**
     请完善此函数，实现登录功能
     参数：acc为账号，pwd为密码
@@ -10,21 +47,24 @@
 */
 char* webuiapi_login(char* acc, char* pwd) {
     // 这里mock一个token，实际应用中请绑定账号和密码与token关系
-    char* token = malloc(129);
+    char* token = generateToken();
 
     int size;
     char* file = readFile("../test.csv", &size);
-    // printf("******************%d", size);
-    // printf("******************%s", file);
     const TinyCsvWebUIData* list = TinyCsv_load(file);
     const TinyCsvWebUIData* current = list;
 
-    // printf("*****************%s %s", acc, pwd);
+    // printf("*******************%s", decHex(list->data.accpwd.acc, 0));
+    // printf("%d", strcmp(current->data.accpwd.acc, decHex(acc, 0)));
+
+
     // 匹配用户名密码 正确返回token
     while (current != NULL) {
-        if (strcmp(current->data.accpwd.acc, acc) == 1 && strcmp(current->data.accpwd.pwd, pwd) == 1) {
-            strcpy(token, "1234567890ABCDEFFEDCBA0987654321");
-            printf("*****************%s %s", acc, pwd);
+        if (current->type == TINY_CSV_TYPE_ACCPWD && strcmp(current->data.accpwd.acc, decHex(acc, 0)) == 0 && strcmp(
+                current->data.accpwd.pwd, decHex(pwd, 0)) == 0) {
+            account.acc = acc;
+            account.pwd = pwd;
+            account.token = token;
             free(file);
             return token;
         }
@@ -41,14 +81,48 @@ char* webuiapi_login(char* acc, char* pwd) {
     参数：acc为账号，pwd为密码
     返回code：0为成功，1为失败，2为账号已存在。
 */
-int webuiapi_register(char* acc, char* pwd) {
+/*
+ * 1.判断用户名是否存在 已经存在则返回2 表示用户名已存在
+ * 2.如果用户名不存在则将用户名密码写入文件，并返回0
+ * 3.如果出现其他问题则返回1
+ */
+int webuiapi_register(const char* acc, const char* pwd) {
     // 这里mock一个code为0的返回值
     // int code = 0;
-    int code = 1;
+    // int code = 1;
     // int code = 2;
+    // 读取csv文件
+    int size;
+    char* file = readFile("../test.csv", &size);
+    const TinyCsvWebUIData* list = TinyCsv_load(file);
+    const TinyCsvWebUIData* current = list;
+    char* currentTime = malloc(sizeof(char) * 20);
+    time_t timep;
+    time(&timep);
+
+    const struct tm* p = gmtime(&timep);
 
 
-    return code;
+    snprintf(currentTime, 20, "%d/%d/%d %d:%d", 1900 + p->tm_year, 1 + p->tm_mon, p->tm_mday, 8 + p->tm_hour,
+             p->tm_min);
+
+    while (current != NULL) {
+        if (current->type == TINY_CSV_TYPE_ACCPWD) {
+            if (strcmp(current->data.accpwd.acc, decHex(acc, 0)) == 0) {
+                return 2;
+            }
+        }
+        current = current->next;
+    }
+
+    char uuid[100];
+    new_TinyCsvWebUIData_ACCPWD(decHex(itoa(size, uuid, 10), 0), decHex(generateItemName(), 0), decHex(acc, 0),
+                                decHex(pwd, 0), currentTime, currentTime);
+
+    return 0;
+
+
+    return 1;
 }
 
 
@@ -72,6 +146,7 @@ int webuiapi_checkToken(char* token) {
     需要管理token与账号的关系，账号也会退出登录时，token也要失效，没退出但是直接重登陆，token也要失效
 */
 void webuiapi_quitToken(char* token) {
+    free(token);
 }
 
 /**
