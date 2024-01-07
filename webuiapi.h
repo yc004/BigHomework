@@ -12,7 +12,7 @@
 //windows环境别忘记编译时加上-lws2_32
 
 /// ==================================== WebUIAPI ====================================
-char* webuiapi_login(char* acc, char* pwd);
+char* webuiapi_login(const char* acc, const char* pwd);
 
 int webuiapi_register(char* acc, char* pwd);
 
@@ -22,15 +22,15 @@ void webuiapi_quitToken(char* token);
 
 char* webuiapi_getDataList(const char* token, int sortType, char* orderType, int queryType, char* search);
 
-char* webuiapi_getDataByUUID(char* token, const char* uuid);
+char* webuiapi_getDataByUUID(const char* token, const char* uuid);
 
-int webuiapi_editItem(char* token, char* uuid, char* itemName, char* string, char* acc, char* pwd);
+int webuiapi_editItem(const char* token, const char* uuid, char* itemName, const char* string, const char* acc, const char* pwd);
 
-int webuiapi_deleteItem(char* token, char* uuid);
+int webuiapi_deleteItem(const char* token, const char* uuid);
 
 int webuiapi_decryptFile(char* token, char* uuid);
 
-int webuiapi_addItem(char* token, int itype, char* name, char* acc, char* pwd, char* string, char* file);
+int webuiapi_addItem(const char* token, int itype, char* name, char* acc, char* pwd, char* string, char* file);
 
 unsigned long long webuiapi_getStudentId();
 

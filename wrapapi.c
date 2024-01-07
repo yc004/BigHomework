@@ -3,8 +3,9 @@
 static struct account {
     char* acc;
     char* pwd;
-    char token[17];
+    char* token;
 } account;
+
 
 char* generateToken() {
     char* token = malloc(sizeof(char) * 17);
@@ -47,23 +48,25 @@ char* generateItemName() {
     返回的指针一定要可以被释放（malloc或者realloc出来的指针），提交完成会自动走free流程
     *已完成*
 */
-char* webuiapi_login(char* acc, char* pwd) {
+char* webuiapi_login(const char* acc, const char* pwd) {
     // 这里mock一个token，实际应用中请绑定账号和密码与token关系
     char* token = generateToken();
 
-    int size;
-    char* file = readFile("../test.csv", &size);
+    char* file = readFile("../test.csv", NULL);
     const TinyCsvWebUIData* list = TinyCsv_load(file);
     const TinyCsvWebUIData* current = list;
     free(file);
 
+    account.acc = malloc(sizeof(char) * 129);
+    account.pwd = malloc(sizeof(char) * 129);
+    account.token = malloc(sizeof(char) * 17);
 
     // 匹配用户名密码 正确返回token
     while (current != NULL) {
         if (current->type == TINY_CSV_TYPE_ACCPWD && strcmp(current->data.accpwd.acc, acc) == 0 && strcmp(
                 current->data.accpwd.pwd, pwd) == 0) {
-            account.acc = acc;
-            account.pwd = pwd;
+            strcpy(account.acc, acc);
+            strcpy(account.pwd, pwd);
             strcpy(account.token, token);
             return token;
         }
@@ -72,7 +75,9 @@ char* webuiapi_login(char* acc, char* pwd) {
     // return token;
     // 如果用户名不存在或密码错误则返回NULL
     // token 置空
-    strcpy(account.token, "");
+    free(account.acc);
+    free(account.pwd);
+    free(account.token);
     return NULL;
 }
 
@@ -116,7 +121,7 @@ int webuiapi_register(char* acc, char* pwd) {
 
     // 将新的节点链接至原链表的尾部
     TinyCsvWebUIData* new = new_TinyCsvWebUIData_ACCPWD(tinycsv_getuuid(generateToken()), generateItemName(), acc, pwd,
-                                                currentTime, currentTime);
+                                                        currentTime, currentTime);
     current->next = new;
     char* csv = TinyCsv_dump(list);
     if (writeFile("../test.csv", csv, 0)) {
@@ -136,7 +141,7 @@ int webuiapi_register(char* acc, char* pwd) {
     *已完成*
 */
 int webuiapi_checkToken(const char* token) {
-    if (strcmp(account.token, "") == 0) {
+    if (account.token == NULL) {
         return 1;
     }
     if (strcmp(account.token, token) == 0) {
@@ -154,7 +159,9 @@ int webuiapi_checkToken(const char* token) {
 */
 void webuiapi_quitToken(char* token) {
     // 让当前后台账户的token恢复为空字符串 token失效
-    strcpy(account.token, "");
+    free(account.acc);
+    free(account.pwd);
+    free(account.token);
     // free(token);
 }
 
@@ -208,19 +215,18 @@ char* webuiapi_getDataList(const char* token, int sortType, char* orderType, int
           //    "2, string,6974656d42,,68656c6c6f20776f726c64,,,2023-12-12 12:12:12,2023-12-12 12:12:12""\r\n"
        //        "3,accpwd,6974656d43,,,61646d696e,3132333435363738,2023-12-12 12:12:12,2023-12-12 12:12:12""\r\n");
     char* csv = readFile("../test.csv", NULL);
-    TinyCsvWebUIData* head = TinyCsv_load(csv);
+    const TinyCsvWebUIData* head = TinyCsv_load(csv);
 
     if (strcmp(account.token, token) == 0) {
         // 升序
         if (sortType) {
-            TinyCsvWebUIData* prev = NULL;
-            TinyCsvWebUIData* cur = head;
+            const TinyCsvWebUIData* prev = NULL;
+            const TinyCsvWebUIData* cur = head;
             while (cur != NULL) {
                 prev = cur;
                 cur = cur->next;
                 if (strcmp(orderType, "uuid") == 0) {
                     if (prev->uuid > cur->uuid) {
-
                     }
                 }
             }
@@ -239,7 +245,7 @@ char* webuiapi_getDataList(const char* token, int sortType, char* orderType, int
     需要管理uuid和数据列表的关系，它不能重复，uuid对应着每个item的唯一标识
     返回的指针一定要可以被释放（malloc或者realloc出来的指针），提交完成会自动走free流程
 */
-char* webuiapi_getDataByUUID(char* token, const char* uuid) {
+char* webuiapi_getDataByUUID(const char* token, const char* uuid) {
     // token 鉴权
     if (strcmp(token, account.token) != 0) {
         return NULL;
@@ -250,6 +256,7 @@ char* webuiapi_getDataByUUID(char* token, const char* uuid) {
     const TinyCsvWebUIData* list = TinyCsv_load(csv);
     const TinyCsvWebUIData* cur = list;
 
+    // 查找对应元素
     while (cur != NULL) {
         if (strcmp(uuid, cur->uuid) == 0) {
             TinyCsvWebUIData data = *cur;
@@ -272,11 +279,40 @@ char* webuiapi_getDataByUUID(char* token, const char* uuid) {
     需要管理token与账号的关系，账号也会退出登录时，token也要失效，没退出但是直接重登陆，token也要失效
     需要管理uuid和数据列表的关系，它不能重复，uuid对应着每个item的唯一标识
 */
-int webuiapi_editItem(char* token, char* uuid, char* itemName, char* string, char* acc, char* pwd) {
+int webuiapi_editItem(const char* token, const char* uuid, char* itemName, const char* string, const char* acc,
+                      const char* pwd) {
     // 这里mock一个code为0的返回值
-    int code = 0;
     // int code = 1;
-    return code;
+    // token 鉴权
+    if (strcmp(token, account.token) != 0) {
+        return 1;
+    }
+
+    // 读取文件
+    char* csv = readFile("../test.csv", NULL);
+    TinyCsvWebUIData* list = TinyCsv_load(csv);
+    TinyCsvWebUIData* cur = list;
+    free(csv);
+
+    while (cur != NULL) {
+        if (strcmp(cur->uuid, uuid) == 0) {
+            cur->itemName = itemName;
+            if (cur->type == TINY_CSV_TYPE_ACCPWD) {
+                cur->data.accpwd.acc = encHex(acc, 0);
+                cur->data.accpwd.pwd = encHex(pwd, 0);
+            }
+            else if (cur->type == TINY_CSV_TYPE_STRING) {
+                cur->data.string = encHex(string, 0);
+            }
+            char* newData = TinyCsv_dump(list);
+            if (writeFile("../test.csv", newData, 0)) {
+                return 0;
+            }
+            return 1;
+        }
+        cur = cur->next;
+    }
+    return 2;
 }
 
 /**
@@ -284,12 +320,47 @@ int webuiapi_editItem(char* token, char* uuid, char* itemName, char* string, cha
     参数：token、uuid
     需要管理token与账号的关系，账号也会退出登录时，token也要失效，没退出但是直接重登陆，token也要失效
     需要管理uuid和数据列表的关系，它不能重复，uuid对应着每个item的唯一标识
+    *已完成*
 */
-int webuiapi_deleteItem(char* token, char* uuid) {
+int webuiapi_deleteItem(const char* token, const char* uuid) {
     // 这里mock一个code为0的返回值
-    int code = 0;
+    // int code = 0;
     // int code = 1;
-    return code;
+
+    // token 鉴权
+    if (strcmp(token, account.token) != 0) {
+        return 1;
+    }
+
+    // 读取文件
+    char* csv = readFile("../test.csv", NULL);
+    TinyCsvWebUIData* list = TinyCsv_load(csv);
+    TinyCsvWebUIData* cur = list;
+    TinyCsvWebUIData* prev = NULL;
+    free(csv);
+
+    int changed = FALSE;
+    while (cur != NULL) {
+        if (strcmp(cur->uuid, uuid) == 0) {
+            changed = TRUE;
+            if (cur == list && prev == NULL) {
+                list = cur->next;
+            }
+            else {
+                prev->next = cur->next;
+            }
+        }
+        prev = cur;
+        cur = cur->next;
+    }
+
+    if (changed) {
+        if (writeFile("../test.csv", TinyCsv_dump(list), 0)) {
+            return 0;
+        }
+        return 1;
+    }
+    return 2;
 }
 
 /**
@@ -312,11 +383,38 @@ int webuiapi_decryptFile(char* token, char* uuid) {
     需要管理token与账号的关系，账号也会退出登录时，token也要失效，没退出但是直接重登陆，token也要失效
     需要管理uuid和数据列表的关系，它不能重复，uuid对应着每个item的唯一标识
 */
-int webuiapi_addItem(char* token, int itype, char* name, char* acc, char* pwd, char* string, char* file) {
+int webuiapi_addItem(const char* token, int itype, char* name, char* acc, char* pwd, char* string, char* file) {
     // 这里mock一个code为0的返回值
-    int code = 0;
+    // int code = 0;
     // int code = 1;
-    return code;
+    // token 鉴权
+    if (strcmp(token, account.token) != 0) {
+        return 1;
+    }
+
+    // 读取文件
+    char* csv = readFile("../test.csv", NULL);
+    const TinyCsvWebUIData* list = TinyCsv_load(csv);
+    const TinyCsvWebUIData* tail = list;
+    free(csv);
+
+    // 将指针至于链表尾部
+    while (tail->next != NULL) {
+        tail = tail->next;
+    }
+
+    TinyCsvWebUIData* new = NULL;
+
+    if (itype == TINY_CSV_TYPE_FILE) {
+
+    } else if (itype == TINY_CSV_TYPE_ACCPWD) {
+
+    } else if (itype == TINY_CSV_TYPE_STRING) {
+
+    }
+
+
+    return 1;
 }
 
 
