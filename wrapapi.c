@@ -239,20 +239,30 @@ char* webuiapi_getDataList(const char* token, int sortType, char* orderType, int
     需要管理uuid和数据列表的关系，它不能重复，uuid对应着每个item的唯一标识
     返回的指针一定要可以被释放（malloc或者realloc出来的指针），提交完成会自动走free流程
 */
-char* webuiapi_getDataByUUID(char* token, char* uuid) {
+char* webuiapi_getDataByUUID(char* token, const char* uuid) {
+    // token 鉴权
+    if (strcmp(token, account.token) != 0) {
+        return NULL;
+    }
+
     // 这里mock一个列表，实际应用中请绑定账号和密码与token关系
-    char* csv = malloc(1024);
-    strcpy(csv, "uuid,type,itemName,file,string,acc,pwd,createTime,updateTime""\r\n"
-           "1,file,6974656d41,312e747874,,,,2023-12-12 12:12:12,2023-12-12 12:12:12""\r\n"
-           // "2,string,6974656d42,,68656c6c6f20776f726c64,,,2023-12-12 12:12:12,2023-12-12 12:12:12""\r\n"
-           // "3,accpwd,6974656d43,,,61646d696e,3132333435363738,2023-12-12 12:12:12,2023-12-12 12:12:12""\r\n"
-    );
-    //     strcpy(csv, "uuid,type,itemName,file,string,acc,pwd,createTime,updateTime""\r\n"
-    // // "1,file,57696e546f70,443a5c50726f6772616d2046696c65732028783836295c57696e546f705c57696e546f702e657865,,,,2023-1-2 3:4:5,2023-1-2 3:4:5""\r\n"
-    // // "2,string,7374724974656d,,B0A2B0CDB0A2B0CD,,,2023-2-3 4:5:6,2023-2-3 4:5:6""\r\n"
-    // "3,accpwd,CAD7CAA6D5CBBAC5,,,313233343536,363534333231,2023-3-4 5:6:7,2023-3-4 5:6:7""\r\n"
+    char* csv = readFile("../test.csv", NULL);
+    const TinyCsvWebUIData* list = TinyCsv_load(csv);
+    const TinyCsvWebUIData* cur = list;
+
+    while (cur != NULL) {
+        if (strcmp(uuid, cur->uuid) == 0) {
+            TinyCsvWebUIData data = *cur;
+            data.next = NULL;
+            return TinyCsv_dump(&data);
+        }
+    }
+    // strcpy(csv, "uuid,type,itemName,file,string,acc,pwd,createTime,updateTime""\r\n"
+    //        "1,file,6974656d41,312e747874,,,,2023-12-12 12:12:12,2023-12-12 12:12:12""\r\n"
+    //        // "2,string,6974656d42,,68656c6c6f20776f726c64,,,2023-12-12 12:12:12,2023-12-12 12:12:12""\r\n"
+    //        // "3,accpwd,6974656d43,,,61646d696e,3132333435363738,2023-12-12 12:12:12,2023-12-12 12:12:12""\r\n"
     // );
-    return csv;
+    return NULL;
 }
 
 /**

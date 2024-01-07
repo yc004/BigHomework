@@ -22,7 +22,7 @@ void webuiapi_quitToken(char* token);
 
 char* webuiapi_getDataList(const char* token, int sortType, char* orderType, int queryType, char* search);
 
-char* webuiapi_getDataByUUID(char* token, char* uuid);
+char* webuiapi_getDataByUUID(char* token, const char* uuid);
 
 int webuiapi_editItem(char* token, char* uuid, char* itemName, char* string, char* acc, char* pwd);
 
