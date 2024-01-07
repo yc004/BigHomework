@@ -24,7 +24,7 @@ char* webuiapi_getDataList(const char* token, int sortType, char* orderType, int
 
 char* webuiapi_getDataByUUID(const char* token, const char* uuid);
 
-int webuiapi_editItem(const char* token, const char* uuid, char* itemName, const char* string, const char* acc, const char* pwd);
+int webuiapi_editItem(const char* token, const char* uuid, char* itemName, char* string, char* acc, char* pwd);
 
 int webuiapi_deleteItem(const char* token, const char* uuid);
 
@@ -276,7 +276,7 @@ resetdoLocalProxy:
             if (string != NULL) {
                 T_string = decHex(string->value, NULL);
             }
-            int code = webuiapi_editItem(tk, id, name, T_acc, T_pwd, T_string);
+            int code = webuiapi_editItem(tk, id, name, T_string, T_acc, T_pwd);
             TXT = malloc(10);
             sprintf(TXT, "%d", code);
             free(name);

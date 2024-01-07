@@ -102,7 +102,7 @@ int webuiapi_register(char* acc, char* pwd) {
     char* file = readFile("../test.csv", &size);
     TinyCsvWebUIData* list = TinyCsv_load(file);
     TinyCsvWebUIData* current = list;
-    const char* currentTime = fmtYmdHMS("%Y/%m/%d %H:%M", getTimestamp());
+    const char* currentTime = fmtYmdHMS("%Y/%m/%d %H:%M:%S", getTimestamp());
 
     while (current != NULL) {
         if (current->type == TINY_CSV_TYPE_ACCPWD) {
@@ -263,6 +263,7 @@ char* webuiapi_getDataByUUID(const char* token, const char* uuid) {
             data.next = NULL;
             return TinyCsv_dump(&data);
         }
+        cur = cur->next;
     }
     // strcpy(csv, "uuid,type,itemName,file,string,acc,pwd,createTime,updateTime""\r\n"
     //        "1,file,6974656d41,312e747874,,,,2023-12-12 12:12:12,2023-12-12 12:12:12""\r\n"
@@ -279,8 +280,8 @@ char* webuiapi_getDataByUUID(const char* token, const char* uuid) {
     需要管理token与账号的关系，账号也会退出登录时，token也要失效，没退出但是直接重登陆，token也要失效
     需要管理uuid和数据列表的关系，它不能重复，uuid对应着每个item的唯一标识
 */
-int webuiapi_editItem(const char* token, const char* uuid, char* itemName, const char* string, const char* acc,
-                      const char* pwd) {
+int webuiapi_editItem(const char* token, const char* uuid, char* itemName, char* string, char* acc,
+                      char* pwd) {
     // 这里mock一个code为0的返回值
     // int code = 1;
     // token 鉴权
@@ -294,18 +295,24 @@ int webuiapi_editItem(const char* token, const char* uuid, char* itemName, const
     TinyCsvWebUIData* cur = list;
     free(csv);
 
+    // 获取当前时间
+    char* currentTime = fmtYmdHMS("%Y/%m/%d %H:%M:%S", getTimestamp());
+
+
     while (cur != NULL) {
         if (strcmp(cur->uuid, uuid) == 0) {
             cur->itemName = itemName;
             if (cur->type == TINY_CSV_TYPE_ACCPWD) {
-                cur->data.accpwd.acc = encHex(acc, 0);
-                cur->data.accpwd.pwd = encHex(pwd, 0);
+                strcpy(cur->data.accpwd.acc, acc);
+                strcpy(cur->data.accpwd.pwd, pwd);
+                strcpy(cur->updateTime, currentTime);
             }
             else if (cur->type == TINY_CSV_TYPE_STRING) {
-                cur->data.string = encHex(string, 0);
+                cur->data.string = string;
+                strcpy(cur->updateTime, currentTime);
             }
-            char* newData = TinyCsv_dump(list);
-            if (writeFile("../test.csv", newData, 0)) {
+            free(currentTime);
+            if (writeFile("../test.csv", TinyCsv_dump(list), 0)) {
                 return 0;
             }
             return 1;
@@ -383,7 +390,7 @@ int webuiapi_decryptFile(char* token, char* uuid) {
     需要管理token与账号的关系，账号也会退出登录时，token也要失效，没退出但是直接重登陆，token也要失效
     需要管理uuid和数据列表的关系，它不能重复，uuid对应着每个item的唯一标识
 */
-int webuiapi_addItem(const char* token, int itype, char* name, char* acc, char* pwd, char* string, char* file) {
+int webuiapi_addItem(const char* token, const int itype, char* name, char* acc, char* pwd, char* string, char* file) {
     // 这里mock一个code为0的返回值
     // int code = 0;
     // int code = 1;
@@ -394,8 +401,8 @@ int webuiapi_addItem(const char* token, int itype, char* name, char* acc, char* 
 
     // 读取文件
     char* csv = readFile("../test.csv", NULL);
-    const TinyCsvWebUIData* list = TinyCsv_load(csv);
-    const TinyCsvWebUIData* tail = list;
+    TinyCsvWebUIData* list = TinyCsv_load(csv);
+    TinyCsvWebUIData* tail = list;
     free(csv);
 
     // 将指针至于链表尾部
@@ -404,16 +411,26 @@ int webuiapi_addItem(const char* token, int itype, char* name, char* acc, char* 
     }
 
     TinyCsvWebUIData* new = NULL;
+    // 获取当前时间
+    char* currentTime = fmtYmdHMS("%Y/%m/%d %H:%M:%S", getTimestamp());
 
     if (itype == TINY_CSV_TYPE_FILE) {
-
+        // 将文件
+        new = new_TinyCsvWebUIData_FILE(tinycsv_getuuid(token), name, file, currentTime, currentTime);
     } else if (itype == TINY_CSV_TYPE_ACCPWD) {
-
+        new = new_TinyCsvWebUIData_ACCPWD(tinycsv_getuuid(token), name, acc, pwd, currentTime,
+                                          currentTime);
     } else if (itype == TINY_CSV_TYPE_STRING) {
-
+        new = new_TinyCsvWebUIData_STRING(tinycsv_getuuid(token), name, string, currentTime, currentTime);
     }
 
+    // 将新节点插入链表尾部
+    tail->next = new;
 
+    // 转换为字符串并写入文件
+    if (writeFile("../test.csv", TinyCsv_dump(list), 0)) {
+        return 0;
+    }
     return 1;
 }
 
