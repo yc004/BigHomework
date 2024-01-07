@@ -171,6 +171,7 @@ void webuiapi_quitToken(char* token) {
     需要管理token与账号的关系，账号也会退出登录时，token也要失效，没退出但是直接重登陆，token也要失效
     需要管理uuid和数据列表的关系，它不能重复，uuid对应着每个item的唯一标识
     返回的指针一定要可以被释放（malloc或者realloc出来的指针），提交完成会自动走free流程
+    *已完成*
 */
 char* tinycsv_getuuid(const char* token) {
     if (strcmp(account.token, token) != 0) {
@@ -207,33 +208,30 @@ char* tinycsv_getuuid(const char* token) {
     需要管理uuid和数据列表的关系，它不能重复，uuid对应着每个item的唯一标识
     返回的指针一定要可以被释放（malloc或者realloc出来的指针），提交完成会自动走free流程
 */
-char* webuiapi_getDataList(const char* token, int sortType, char* orderType, int queryType, char* search) {
-    // 这里mock一个列表，实际应用中请绑定账号和密码与token关系
-    //   c har* csv = malloc(1024);
-     //   strcpy(csv, "uuid,type,itemName,file,string,acc,pwd,createTime,updateTime""\r\n"
-      //         "1,file,6974656d41,312e747874,,,,2023-12-12 12:12:12,2023-12-12 12:12:12""\r\n"
-          //    "2, string,6974656d42,,68656c6c6f20776f726c64,,,2023-12-12 12:12:12,2023-12-12 12:12:12""\r\n"
-       //        "3,accpwd,6974656d43,,,61646d696e,3132333435363738,2023-12-12 12:12:12,2023-12-12 12:12:12""\r\n");
+char* webuiapi_getDataList(const char* token, const int sortType, const char* orderType, int queryType, char* search) {
+    // token鉴权
+    if (strcmp(account.token, token) != 0) {
+        return NULL;
+    }
+
     char* csv = readFile("../test.csv", NULL);
     const TinyCsvWebUIData* head = TinyCsv_load(csv);
 
-    if (strcmp(account.token, token) == 0) {
-        // 升序
-        if (sortType) {
-            const TinyCsvWebUIData* prev = NULL;
-            const TinyCsvWebUIData* cur = head;
-            while (cur != NULL) {
-                prev = cur;
-                cur = cur->next;
-                if (strcmp(orderType, "uuid") == 0) {
-                    if (prev->uuid > cur->uuid) {
-                    }
+    // 升序
+    if (sortType) {
+        const TinyCsvWebUIData* prev = NULL;
+        const TinyCsvWebUIData* cur = head;
+        while (cur != NULL) {
+            prev = cur;
+            cur = cur->next;
+            if (strcmp(orderType, "uuid") == 0) {
+                if (prev->uuid > cur->uuid) {
                 }
             }
         }
-        // 降序
-        else {
-        }
+    }
+    // 降序
+    else {
     }
     return csv;
 }
@@ -244,6 +242,7 @@ char* webuiapi_getDataList(const char* token, int sortType, char* orderType, int
     需要管理token与账号的关系，账号也会退出登录时，token也要失效，没退出但是直接重登陆，token也要失效
     需要管理uuid和数据列表的关系，它不能重复，uuid对应着每个item的唯一标识
     返回的指针一定要可以被释放（malloc或者realloc出来的指针），提交完成会自动走free流程
+    *已完成*
 */
 char* webuiapi_getDataByUUID(const char* token, const char* uuid) {
     // token 鉴权
@@ -251,7 +250,6 @@ char* webuiapi_getDataByUUID(const char* token, const char* uuid) {
         return NULL;
     }
 
-    // 这里mock一个列表，实际应用中请绑定账号和密码与token关系
     char* csv = readFile("../test.csv", NULL);
     const TinyCsvWebUIData* list = TinyCsv_load(csv);
     const TinyCsvWebUIData* cur = list;
@@ -279,9 +277,10 @@ char* webuiapi_getDataByUUID(const char* token, const char* uuid) {
     其中string、acc、pwd为可选参数，请根据数据列表中的type字段判断是否使用
     需要管理token与账号的关系，账号也会退出登录时，token也要失效，没退出但是直接重登陆，token也要失效
     需要管理uuid和数据列表的关系，它不能重复，uuid对应着每个item的唯一标识
+    *已完成*
 */
-int webuiapi_editItem(const char* token, const char* uuid, char* itemName, char* string, char* acc,
-                      char* pwd) {
+int webuiapi_editItem(const char* token, const char* uuid, char* itemName, char* string, const char* acc,
+                      const char* pwd) {
     // 这里mock一个code为0的返回值
     // int code = 1;
     // token 鉴权
@@ -308,10 +307,12 @@ int webuiapi_editItem(const char* token, const char* uuid, char* itemName, char*
                 strcpy(cur->updateTime, currentTime);
             }
             else if (cur->type == TINY_CSV_TYPE_STRING) {
-                cur->data.string = string;
+                strcpy(cur->data.string, string);
                 strcpy(cur->updateTime, currentTime);
             }
             free(currentTime);
+
+            // 数据写入文件
             if (writeFile("../test.csv", TinyCsv_dump(list), 0)) {
                 return 0;
             }
@@ -319,6 +320,8 @@ int webuiapi_editItem(const char* token, const char* uuid, char* itemName, char*
         }
         cur = cur->next;
     }
+
+    // 目标不存在
     return 2;
 }
 
@@ -346,6 +349,7 @@ int webuiapi_deleteItem(const char* token, const char* uuid) {
     TinyCsvWebUIData* prev = NULL;
     free(csv);
 
+    // 用于判断目标节点是否已经删除
     int changed = FALSE;
     while (cur != NULL) {
         if (strcmp(cur->uuid, uuid) == 0) {
@@ -353,7 +357,7 @@ int webuiapi_deleteItem(const char* token, const char* uuid) {
             if (cur == list && prev == NULL) {
                 list = cur->next;
             }
-            else {
+            else if (prev != NULL) {
                 prev->next = cur->next;
             }
         }
@@ -375,12 +379,36 @@ int webuiapi_deleteItem(const char* token, const char* uuid) {
     参数：token、uuid
     需要管理token与账号的关系，账号也会退出登录时，token也要失效，没退出但是直接重登陆，token也要失效
     需要管理uuid和数据列表的关系，它不能重复，uuid对应着每个item的唯一标识
+    *已完成*
 */
-int webuiapi_decryptFile(char* token, char* uuid) {
-    // 这里mock一个code为0的返回值
-    int code = 0;
-    // int code = 1;
-    return code;
+int webuiapi_decryptFile(const char* token, const char* uuid) {
+    // token 鉴权
+    if (strcmp(account.token, token) != 0) {
+        return 1;
+    }
+
+    char* csv = readFile("../test.csv", NULL);
+    const TinyCsvWebUIData* list = TinyCsv_load(csv);
+    const TinyCsvWebUIData* cur = list;
+
+    // 查找对应元素
+    while (cur != NULL) {
+        if (strcmp(uuid, cur->uuid) == 0) {
+            if (fileExists(cur->data.file)) {
+                if (writeFile(cur->data.file, decBase64(readFile(cur->data.file, NULL), 0), 0)) {
+                    return 0;
+                }
+                // 写入错误
+                return 1;
+            }
+            // 文件不存在错误
+            return 1;
+        }
+        cur = cur->next;
+    }
+
+    // 目标未找到
+    return 2;
 }
 
 /**
@@ -389,6 +417,7 @@ int webuiapi_decryptFile(char* token, char* uuid) {
     其中string、acc、pwd、file为可选参数，请根据itype判断是否使用
     需要管理token与账号的关系，账号也会退出登录时，token也要失效，没退出但是直接重登陆，token也要失效
     需要管理uuid和数据列表的关系，它不能重复，uuid对应着每个item的唯一标识
+    *已完成*
 */
 int webuiapi_addItem(const char* token, const int itype, char* name, char* acc, char* pwd, char* string, char* file) {
     // 这里mock一个code为0的返回值
@@ -415,12 +444,25 @@ int webuiapi_addItem(const char* token, const int itype, char* name, char* acc, 
     char* currentTime = fmtYmdHMS("%Y/%m/%d %H:%M:%S", getTimestamp());
 
     if (itype == TINY_CSV_TYPE_FILE) {
-        // 将文件
+        // 将文件路径记录至数据库
         new = new_TinyCsvWebUIData_FILE(tinycsv_getuuid(token), name, file, currentTime, currentTime);
-    } else if (itype == TINY_CSV_TYPE_ACCPWD) {
+        // 对原文件进行加密
+        if (fileExists(file)) {
+            if (!writeFile(file, encBase64(readFile(file, NULL), 0), 0)) {
+                // 如果写入失败 返回错误代码 1
+                return 1;
+            }
+        }
+        // 指定的文件不存在
+        else {
+            return 1;
+        }
+    }
+    else if (itype == TINY_CSV_TYPE_ACCPWD) {
         new = new_TinyCsvWebUIData_ACCPWD(tinycsv_getuuid(token), name, acc, pwd, currentTime,
                                           currentTime);
-    } else if (itype == TINY_CSV_TYPE_STRING) {
+    }
+    else if (itype == TINY_CSV_TYPE_STRING) {
         new = new_TinyCsvWebUIData_STRING(tinycsv_getuuid(token), name, string, currentTime, currentTime);
     }
 
