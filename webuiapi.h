@@ -14,13 +14,13 @@
 /// ==================================== WebUIAPI ====================================
 char* webuiapi_login(char* acc, char* pwd);
 
-int webuiapi_register(const char* acc, const char* pwd);
+int webuiapi_register(char* acc, char* pwd);
 
-int webuiapi_checkToken(char* token);
+int webuiapi_checkToken(const char* token);
 
 void webuiapi_quitToken(char* token);
 
-char* webuiapi_getDataList(char* token, int sortType, char* orderType, int queryType, char* search);
+char* webuiapi_getDataList(const char* token, int sortType, char* orderType, int queryType, char* search);
 
 char* webuiapi_getDataByUUID(char* token, char* uuid);
 

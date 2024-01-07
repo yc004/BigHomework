@@ -3,7 +3,7 @@
 #include "commonutil.h"
 
 /// ==================================== TinyCSV.MD ====================================
-char* tinycsv_getuuid(char* token);
+char* tinycsv_getuuid(const char* token);
 
 /// ==================================== TinyCSV.MD ====================================
 

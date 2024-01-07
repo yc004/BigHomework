@@ -191,9 +191,7 @@ static char* Rc4Core(char* data, int size, char* key, int keySize) {
 #define encRc4(...) Rc4Core(__VA_ARGS__)
 #define decRc4(...) Rc4Core(__VA_ARGS__)
 //�ļ���ȡ
-static char*
-
-    readFile(char* path, int* size) {
+static char* readFile(char* path, int* size) {
     FILE* fp = fopen(path, "rb");
     if (fp == NULL) return NULL;
     fseek(fp, 0, SEEK_END);

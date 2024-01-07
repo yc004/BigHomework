@@ -1,9 +1,9 @@
 #include "webuiapi.h"
 
-struct account {
+static struct account {
     char* acc;
     char* pwd;
-    char* token;
+    char token[17];
 } account;
 
 char* generateToken() {
@@ -20,6 +20,7 @@ char* generateToken() {
 
     return token;
 }
+
 
 char* generateItemName() {
     char* itemName = malloc(sizeof(char) * 11);
@@ -44,6 +45,7 @@ char* generateItemName() {
     token尽量保证随机性（作为身份认证），是长度不超过128字节的HEX字符串
     需要管理token与账号的关系，账号也会退出登录时，token也要失效，没退出但是直接重登陆，token也要失效
     返回的指针一定要可以被释放（malloc或者realloc出来的指针），提交完成会自动走free流程
+    *已完成*
 */
 char* webuiapi_login(char* acc, char* pwd) {
     // 这里mock一个token，实际应用中请绑定账号和密码与token关系
@@ -53,26 +55,24 @@ char* webuiapi_login(char* acc, char* pwd) {
     char* file = readFile("../test.csv", &size);
     const TinyCsvWebUIData* list = TinyCsv_load(file);
     const TinyCsvWebUIData* current = list;
-
-    // printf("*******************%s", decHex(list->data.accpwd.acc, 0));
-    // printf("%d", strcmp(current->data.accpwd.acc, decHex(acc, 0)));
+    free(file);
 
 
     // 匹配用户名密码 正确返回token
     while (current != NULL) {
-        if (current->type == TINY_CSV_TYPE_ACCPWD && strcmp(current->data.accpwd.acc, decHex(acc, 0)) == 0 && strcmp(
-                current->data.accpwd.pwd, decHex(pwd, 0)) == 0) {
+        if (current->type == TINY_CSV_TYPE_ACCPWD && strcmp(current->data.accpwd.acc, acc) == 0 && strcmp(
+                current->data.accpwd.pwd, pwd) == 0) {
             account.acc = acc;
             account.pwd = pwd;
-            account.token = token;
-            free(file);
+            strcpy(account.token, token);
             return token;
         }
         current = current->next;
     }
     // return token;
     // 如果用户名不存在或密码错误则返回NULL
-    free(file);
+    // token 置空
+    strcpy(account.token, "");
     return NULL;
 }
 
@@ -80,13 +80,14 @@ char* webuiapi_login(char* acc, char* pwd) {
     请完善此函数，实现注册功能
     参数：acc为账号，pwd为密码
     返回code：0为成功，1为失败，2为账号已存在。
+    *已完成*
 */
 /*
  * 1.判断用户名是否存在 已经存在则返回2 表示用户名已存在
  * 2.如果用户名不存在则将用户名密码写入文件，并返回0
  * 3.如果出现其他问题则返回1
  */
-int webuiapi_register(const char* acc, const char* pwd) {
+int webuiapi_register(char* acc, char* pwd) {
     // 这里mock一个code为0的返回值
     // int code = 0;
     // int code = 1;
@@ -94,34 +95,35 @@ int webuiapi_register(const char* acc, const char* pwd) {
     // 读取csv文件
     int size;
     char* file = readFile("../test.csv", &size);
-    const TinyCsvWebUIData* list = TinyCsv_load(file);
-    const TinyCsvWebUIData* current = list;
-    char* currentTime = malloc(sizeof(char) * 20);
-    time_t timep;
-    time(&timep);
-
-    const struct tm* p = gmtime(&timep);
-
-
-    snprintf(currentTime, 20, "%d/%d/%d %d:%d", 1900 + p->tm_year, 1 + p->tm_mon, p->tm_mday, 8 + p->tm_hour,
-             p->tm_min);
+    TinyCsvWebUIData* list = TinyCsv_load(file);
+    TinyCsvWebUIData* current = list;
+    const char* currentTime = fmtYmdHMS("%Y/%m/%d %H:%M", getTimestamp());
 
     while (current != NULL) {
         if (current->type == TINY_CSV_TYPE_ACCPWD) {
-            if (strcmp(current->data.accpwd.acc, decHex(acc, 0)) == 0) {
+            if (strcmp(current->data.accpwd.acc, acc) == 0) {
                 return 2;
             }
         }
         current = current->next;
     }
 
-    char uuid[100];
-    new_TinyCsvWebUIData_ACCPWD(decHex(itoa(size, uuid, 10), 0), decHex(generateItemName(), 0), decHex(acc, 0),
-                                decHex(pwd, 0), currentTime, currentTime);
+    // 让指针重新指向最后一个节点
+    current = list;
+    while (current->next != NULL) {
+        current = current->next;
+    }
 
-    return 0;
-
-
+    // 将新的节点链接至原链表的尾部
+    TinyCsvWebUIData* new = new_TinyCsvWebUIData_ACCPWD(tinycsv_getuuid(generateToken()), generateItemName(), acc, pwd,
+                                                currentTime, currentTime);
+    current->next = new;
+    char* csv = TinyCsv_dump(list);
+    if (writeFile("../test.csv", csv, 0)) {
+        // 正常结束
+        return 0;
+    }
+    // 其他异常造成添加失败
     return 1;
 }
 
@@ -131,12 +133,16 @@ int webuiapi_register(const char* acc, const char* pwd) {
     参数：token
     返回code：0为成功，1为失败。
     需要管理token与账号的关系，账号也会退出登录时，token也要失效，没退出但是直接重登陆，token也要失效
+    *已完成*
 */
-int webuiapi_checkToken(char* token) {
-    // 这里mock一个code为0的返回值
-    // int code = 0;
-    int code = 1;
-    return code;
+int webuiapi_checkToken(const char* token) {
+    if (strcmp(account.token, "") == 0) {
+        return 1;
+    }
+    if (strcmp(account.token, token) == 0) {
+        return 0;
+    }
+    return 1;
 }
 
 
@@ -144,9 +150,12 @@ int webuiapi_checkToken(char* token) {
     请完善此函数，实现token退出功能
     参数：token
     需要管理token与账号的关系，账号也会退出登录时，token也要失效，没退出但是直接重登陆，token也要失效
+    *已完成*
 */
 void webuiapi_quitToken(char* token) {
-    free(token);
+    // 让当前后台账户的token恢复为空字符串 token失效
+    strcpy(account.token, "");
+    // free(token);
 }
 
 /**
@@ -156,10 +165,28 @@ void webuiapi_quitToken(char* token) {
     需要管理uuid和数据列表的关系，它不能重复，uuid对应着每个item的唯一标识
     返回的指针一定要可以被释放（malloc或者realloc出来的指针），提交完成会自动走free流程
 */
-char* tinycsv_getuuid(char* token) {
+char* tinycsv_getuuid(const char* token) {
+    if (strcmp(account.token, token) != 0) {
+        return NULL;
+    }
     // 这里mock一个uuid，实际应用中请绑定账号和密码与token关系
-    char* uuid = malloc(129);
-    strcpy(uuid, "1234567890ABCDEFFEDCBA0987654321");
+    // 遍历链表 找到最大的uuid
+    char* csv = readFile("../test.csv", NULL);
+    const TinyCsvWebUIData* list = TinyCsv_load(csv);
+    const TinyCsvWebUIData* cur = list;
+
+    int max = atoi(cur->uuid);
+    cur = cur->next;
+    // 找到当前链表中的最大uuid
+    while (cur != NULL) {
+        if (atoi(cur->uuid) > max) {
+            max = atoi(cur->uuid);
+        }
+        cur = cur->next;
+    }
+    char* uuid = malloc(sizeof(char) * 128);
+    // 让新的uuid为最大uuid + 1
+    itoa(max + 1, uuid, 10);
     return uuid;
 }
 
@@ -173,18 +200,35 @@ char* tinycsv_getuuid(char* token) {
     需要管理uuid和数据列表的关系，它不能重复，uuid对应着每个item的唯一标识
     返回的指针一定要可以被释放（malloc或者realloc出来的指针），提交完成会自动走free流程
 */
-char* webuiapi_getDataList(char* token, int sortType, char* orderType, int queryType, char* search) {
+char* webuiapi_getDataList(const char* token, int sortType, char* orderType, int queryType, char* search) {
     // 这里mock一个列表，实际应用中请绑定账号和密码与token关系
-    char* csv = malloc(1024);
-    strcpy(csv, "uuid,type,itemName,file,string,acc,pwd,createTime,updateTime""\r\n"
-           "1,file,6974656d41,312e747874,,,,2023-12-12 12:12:12,2023-12-12 12:12:12""\r\n"
-           "2,string,6974656d42,,68656c6c6f20776f726c64,,,2023-12-12 12:12:12,2023-12-12 12:12:12""\r\n"
-           "3,accpwd,6974656d43,,,61646d696e,3132333435363738,2023-12-12 12:12:12,2023-12-12 12:12:12""\r\n");
-    //     strcpy(csv, "uuid,type,itemName,file,string,acc,pwd,createTime,updateTime""\r\n"
-    //    "1,file,57696e546f70,443a5c50726f6772616d2046696c65732028783836295c57696e546f705c57696e546f702e657865,,,,2023-1-2 3:4:5,2023-1-2 3:4:5""\r\n"
-    //     // "2,string,7374724974656d,,B0A2B0CDB0A2B0CD,,,2023-2-3 4:5:6,2023-2-3 4:5:6""\r\n"
-    //     // "3,accpwd,CAD7CAA6D5CBBAC5,,,313233343536,363534333231,2023-3-4 5:6:7,2023-3-4 5:6:7""\r\n"
-    //     );
+    //   c har* csv = malloc(1024);
+     //   strcpy(csv, "uuid,type,itemName,file,string,acc,pwd,createTime,updateTime""\r\n"
+      //         "1,file,6974656d41,312e747874,,,,2023-12-12 12:12:12,2023-12-12 12:12:12""\r\n"
+          //    "2, string,6974656d42,,68656c6c6f20776f726c64,,,2023-12-12 12:12:12,2023-12-12 12:12:12""\r\n"
+       //        "3,accpwd,6974656d43,,,61646d696e,3132333435363738,2023-12-12 12:12:12,2023-12-12 12:12:12""\r\n");
+    char* csv = readFile("../test.csv", NULL);
+    TinyCsvWebUIData* head = TinyCsv_load(csv);
+
+    if (strcmp(account.token, token) == 0) {
+        // 升序
+        if (sortType) {
+            TinyCsvWebUIData* prev = NULL;
+            TinyCsvWebUIData* cur = head;
+            while (cur != NULL) {
+                prev = cur;
+                cur = cur->next;
+                if (strcmp(orderType, "uuid") == 0) {
+                    if (prev->uuid > cur->uuid) {
+
+                    }
+                }
+            }
+        }
+        // 降序
+        else {
+        }
+    }
     return csv;
 }
 
@@ -265,10 +309,12 @@ int webuiapi_addItem(char* token, int itype, char* name, char* acc, char* pwd, c
     return code;
 }
 
+
 /**
     请完善此函数，实现获取你的学号功能
     参数：无
     返回值：你的学号数字
+    *已完成*
 */
 unsigned long long webuiapi_getStudentId() {
     return 1231003009;
