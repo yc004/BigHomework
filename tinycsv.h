@@ -19,8 +19,8 @@ typedef enum TinyCsvType {
 
 // 匹配TinyCsvType的宏（用于复合判断，但是注意，数据只能有唯一类型）
 #define TINY_CSV_TYPE_CONSISTENT_FILE(type) ((type&TINY_CSV_TYPE_FILE) == 1)
-#define TINY_CSV_TYPE_CONSISTENT_STRING(type) ((type&TINY_CSV_TYPE_STRING) == 1)
-#define TINY_CSV_TYPE_CONSISTENT_ACCPWD(type) ((type&TINY_CSV_TYPE_ACCPWD) == 1)
+#define TINY_CSV_TYPE_CONSISTENT_STRING(type) ((type&TINY_CSV_TYPE_STRING) == (1 << 1))
+#define TINY_CSV_TYPE_CONSISTENT_ACCPWD(type) ((type&TINY_CSV_TYPE_ACCPWD) == (1 << 2))
 
 typedef struct TinyCsvWebUIData {
     char* uuid; //uuid自行分配吧，就不直接指定尺寸了

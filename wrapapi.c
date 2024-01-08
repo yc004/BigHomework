@@ -104,7 +104,7 @@ int webuiapi_register(char* acc, char* pwd) {
     TinyCsvWebUIData* current = list;
     const char* currentTime = fmtYmdHMS("%Y/%m/%d %H:%M:%S", getTimestamp());
 
-    while (current != NULL) {
+    while (list->itemName != NULL && current != NULL) {
         if (current->type == TINY_CSV_TYPE_ACCPWD) {
             if (strcmp(current->data.accpwd.acc, acc) == 0) {
                 return 2;
@@ -115,14 +115,19 @@ int webuiapi_register(char* acc, char* pwd) {
 
     // 让指针重新指向最后一个节点
     current = list;
-    while (current->next != NULL) {
+    while (list->itemName != NULL && current->next != NULL) {
         current = current->next;
     }
 
-    // 将新的节点链接至原链表的尾部
-    TinyCsvWebUIData* new = new_TinyCsvWebUIData_ACCPWD(tinycsv_getuuid(generateToken()), generateItemName(), acc, pwd,
+    TinyCsvWebUIData* new = new_TinyCsvWebUIData_ACCPWD(tinycsv_getuuid("inner"), generateItemName(), acc, pwd,
                                                         currentTime, currentTime);
-    current->next = new;
+    // 将新的节点链接至原链表的尾部
+    if (current->itemName != NULL) {
+        current->next = new;
+    }
+    else {
+        list = new;
+    }
     char* csv = TinyCsv_dump(list);
     if (writeFile("../test.csv", csv, 0)) {
         // 正常结束
@@ -174,11 +179,6 @@ void webuiapi_quitToken(char* token) {
     *已完成*
 */
 char* tinycsv_getuuid(const char* token) {
-    if (strcmp(account.token, token) != 0) {
-        return NULL;
-    }
-    // 这里mock一个uuid，实际应用中请绑定账号和密码与token关系
-    // 遍历链表 找到最大的uuid
     char* csv = readFile("../test.csv", NULL);
     const TinyCsvWebUIData* list = TinyCsv_load(csv);
     const TinyCsvWebUIData* cur = list;
@@ -198,6 +198,23 @@ char* tinycsv_getuuid(const char* token) {
     return uuid;
 }
 
+void swap(TinyCsvWebUIData* a_p, TinyCsvWebUIData* b_p) {
+    const TinyCsvWebUIData temp = *a_p;
+    a_p->data = b_p->data;
+    a_p->type = b_p->type;
+    a_p->uuid = b_p->uuid;
+    strcpy(a_p->createTime, b_p->createTime);
+    strcpy(a_p->updateTime, b_p->updateTime);
+    a_p->itemName = b_p->itemName;
+
+    b_p->uuid = temp.uuid;
+    b_p->type = temp.type;
+    strcpy(b_p->updateTime, temp.updateTime);
+    strcpy(b_p->createTime, temp.createTime);
+    b_p->data = temp.data;
+    b_p->itemName = temp.itemName;
+}
+
 /**
     请完善此函数，实现申请获取数据列表功能
     参数：token、sortType、orderType、queryType、search
@@ -208,31 +225,90 @@ char* tinycsv_getuuid(const char* token) {
     需要管理uuid和数据列表的关系，它不能重复，uuid对应着每个item的唯一标识
     返回的指针一定要可以被释放（malloc或者realloc出来的指针），提交完成会自动走free流程
 */
-char* webuiapi_getDataList(const char* token, const int sortType, const char* orderType, int queryType, char* search) {
+char* webuiapi_getDataList(const char* token, const int sortType, const char* orderType, const int queryType,
+                           char* search) {
     // token鉴权
     if (strcmp(account.token, token) != 0) {
         return NULL;
     }
 
     char* csv = readFile("../test.csv", NULL);
-    const TinyCsvWebUIData* head = TinyCsv_load(csv);
+    TinyCsvWebUIData* head = TinyCsv_load(csv);
+    TinyCsvWebUIData* cur = head;
+    const TinyCsvWebUIData* prev = NULL;
 
+
+    // 先按照筛选条件挑出满足条件的元素
+    while (cur != NULL) {
+        // 指定的文件类型筛选
+        // 当元素的类型和函数指定的类型做 按位与 运算值为 0
+        // 说明当前元素不是前端需要的元素 将该节点删除即可
+        if ((cur->type & queryType) == 0) {
+            if (cur != head) {
+                prev = cur->next;
+            }
+            else {
+                head = cur->next;
+            }
+        }
+        prev = cur;
+        cur = cur->next;
+    }
+
+    // 使用选择排序对链表进行排序
+    // 当前节点重新指向链表头部
+    cur = head;
     // 升序
     if (sortType) {
-        const TinyCsvWebUIData* prev = NULL;
-        const TinyCsvWebUIData* cur = head;
         while (cur != NULL) {
-            prev = cur;
-            cur = cur->next;
-            if (strcmp(orderType, "uuid") == 0) {
-                if (prev->uuid > cur->uuid) {
+            TinyCsvWebUIData* p = cur->next;
+            while (p != NULL) {
+                if (strcmp(orderType, "uuid") == 0 && cur->uuid > p->uuid) {
+                    swap(cur, p);
                 }
+                else if (strcmp(orderType, "itemName") == 0 && strcmp(cur->itemName, p->itemName) > 0) {
+                    swap(cur, p);
+                }
+                else if (strcmp(orderType, "createTime") == 0 && getTimestampByStr(cur->createTime) > getTimestampByStr(
+                             p->createTime)) {
+                    swap(cur, p);
+                }
+                else if (strcmp(orderType, "updateTime") == 0 && getTimestampByStr(cur->updateTime) >
+                         getTimestampByStr(p->updateTime)) {
+                    swap(cur, p);
+                }
+                p = p->next;
             }
+            cur = cur->next;
         }
     }
     // 降序
     else {
+        while (cur != NULL) {
+            TinyCsvWebUIData* p = cur->next;
+            while (p != NULL) {
+                if (strcmp(orderType, "uuid") == 0 && cur->uuid < p->uuid) {
+                    swap(cur, p);
+                }
+                else if (strcmp(orderType, "itemName") == 0 && strcmp(cur->itemName, p->itemName) < 0) {
+                    swap(cur, p);
+                }
+                else if (strcmp(orderType, "createTime") == 0 && getTimestampByStr(cur->createTime) < getTimestampByStr(
+                             p->createTime)) {
+                    swap(cur, p);
+                }
+                else if (strcmp(orderType, "updateTime") == 0 && getTimestampByStr(cur->updateTime) <
+                         getTimestampByStr(p->updateTime)) {
+                    swap(cur, p);
+                }
+                p = p->next;
+            }
+            cur = cur->next;
+        }
     }
+
+    // 转为字符串返回前端
+    csv = TinyCsv_dump(head);
     return csv;
 }
 
@@ -263,11 +339,6 @@ char* webuiapi_getDataByUUID(const char* token, const char* uuid) {
         }
         cur = cur->next;
     }
-    // strcpy(csv, "uuid,type,itemName,file,string,acc,pwd,createTime,updateTime""\r\n"
-    //        "1,file,6974656d41,312e747874,,,,2023-12-12 12:12:12,2023-12-12 12:12:12""\r\n"
-    //        // "2,string,6974656d42,,68656c6c6f20776f726c64,,,2023-12-12 12:12:12,2023-12-12 12:12:12""\r\n"
-    //        // "3,accpwd,6974656d43,,,61646d696e,3132333435363738,2023-12-12 12:12:12,2023-12-12 12:12:12""\r\n"
-    // );
     return NULL;
 }
 
@@ -435,7 +506,7 @@ int webuiapi_addItem(const char* token, const int itype, char* name, char* acc, 
     free(csv);
 
     // 将指针至于链表尾部
-    while (tail->next != NULL) {
+    while (tail->next != NULL && list != NULL) {
         tail = tail->next;
     }
 
