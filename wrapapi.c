@@ -1,5 +1,7 @@
 #include "webuiapi.h"
 
+
+// 全局储存账户信息 用于和前端token进行验证
 static struct account {
     char* acc;
     char* pwd;
@@ -128,8 +130,8 @@ int webuiapi_register(char* acc, char* pwd) {
     else {
         list = new;
     }
-    char* csv = TinyCsv_dump(list);
-    if (writeFile("../test.csv", csv, 0)) {
+
+    if (writeFile("../test.csv", TinyCsv_dump(list), 0)) {
         // 正常结束
         return 0;
     }
@@ -146,13 +148,10 @@ int webuiapi_register(char* acc, char* pwd) {
     *已完成*
 */
 int webuiapi_checkToken(const char* token) {
-    if (account.token == NULL) {
+    if (account.token == NULL || strcmp(account.token, token) != 0) {
         return 1;
     }
-    if (strcmp(account.token, token) == 0) {
-        return 0;
-    }
-    return 1;
+    return 0;
 }
 
 
@@ -229,7 +228,7 @@ void swap(TinyCsvWebUIData* a_p, TinyCsvWebUIData* b_p) {
 char* webuiapi_getDataList(const char* token, const int sortType, const char* orderType, const int queryType,
                            char* search) {
     // token鉴权
-    if (account.token == NULL || strcmp(account.token, token) != 0) {
+    if (webuiapi_checkToken(token)) {
         return NULL;
     }
 
@@ -240,6 +239,8 @@ char* webuiapi_getDataList(const char* token, const int sortType, const char* or
 
 
     // 先按照筛选条件挑出满足条件的元素
+    // 同时计算链表长度 size 用于后续选择排序
+    int size = 0;
     while (cur != NULL) {
         // 指定的文件类型筛选
         // 当元素的类型和函数指定的类型做 按位与 运算值为 0
@@ -247,12 +248,16 @@ char* webuiapi_getDataList(const char* token, const int sortType, const char* or
         if ((cur->type & queryType) == 0) {
             if (cur != head && prev != NULL) {
                 prev->next = cur->next;
+                cur = cur->next;
+                continue;
             }
             // 头节点情况
-            else {
-                head = cur->next;
-            }
+            head = cur->next;
+            prev = NULL;
+            cur = head;
+            continue;
         }
+        size++;
         prev = cur;
         cur = cur->next;
     }
@@ -261,53 +266,53 @@ char* webuiapi_getDataList(const char* token, const int sortType, const char* or
     // 当前节点重新指向链表头部
     cur = head;
     // 升序
-    // if (sortType) {
-    //     while (cur != NULL) {
-    //         TinyCsvWebUIData* p = cur->next;
-    //         while (p != NULL) {
-    //             if (strcmp(orderType, "uuid") == 0 && cur->uuid > p->uuid) {
-    //                 swap(cur, p);
-    //             }
-    //             else if (strcmp(orderType, "itemName") == 0 && strcmp(cur->itemName, p->itemName) > 0) {
-    //                 swap(cur, p);
-    //             }
-    //             else if (strcmp(orderType, "createTime") == 0 && getTimestampByStr(cur->createTime) > getTimestampByStr(
-    //                          p->createTime)) {
-    //                 swap(cur, p);
-    //             }
-    //             else if (strcmp(orderType, "updateTime") == 0 && getTimestampByStr(cur->updateTime) >
-    //                      getTimestampByStr(p->updateTime)) {
-    //                 swap(cur, p);
-    //             }
-    //             p = p->next;
-    //         }
-    //         cur = cur->next;
-    //     }
-    // }
-    // // 降序
-    // else {
-    //     while (cur != NULL) {
-    //         TinyCsvWebUIData* p = cur->next;
-    //         while (p != NULL) {
-    //             if (strcmp(orderType, "uuid") == 0 && cur->uuid < p->uuid) {
-    //                 swap(cur, p);
-    //             }
-    //             else if (strcmp(orderType, "itemName") == 0 && strcmp(cur->itemName, p->itemName) < 0) {
-    //                 swap(cur, p);
-    //             }
-    //             else if (strcmp(orderType, "createTime") == 0 && getTimestampByStr(cur->createTime) < getTimestampByStr(
-    //                          p->createTime)) {
-    //                 swap(cur, p);
-    //             }
-    //             else if (strcmp(orderType, "updateTime") == 0 && getTimestampByStr(cur->updateTime) <
-    //                      getTimestampByStr(p->updateTime)) {
-    //                 swap(cur, p);
-    //             }
-    //             p = p->next;
-    //         }
-    //         cur = cur->next;
-    //     }
-    // }
+    if (sortType) {
+        while (cur != NULL) {
+            TinyCsvWebUIData* p = cur->next;
+            while (p != NULL) {
+                if (strcmp(orderType, "uuid") == 0 && cur->uuid > p->uuid) {
+                    swap(cur, p);
+                }
+                else if (strcmp(orderType, "itemName") == 0 && strcmp(cur->itemName, p->itemName) > 0) {
+                    swap(cur, p);
+                }
+                else if (strcmp(orderType, "createTime") == 0 && getTimestampByStr(cur->createTime) > getTimestampByStr(
+                             p->createTime)) {
+                    swap(cur, p);
+                }
+                else if (strcmp(orderType, "updateTime") == 0 && getTimestampByStr(cur->updateTime) >
+                         getTimestampByStr(p->updateTime)) {
+                    swap(cur, p);
+                }
+                p = p->next;
+            }
+            cur = cur->next;
+        }
+    }
+    // 降序
+    else {
+        while (cur != NULL) {
+            TinyCsvWebUIData* p = cur->next;
+            while (p != NULL) {
+                if (strcmp(orderType, "uuid") == 0 && cur->uuid < p->uuid) {
+                    swap(cur, p);
+                }
+                else if (strcmp(orderType, "itemName") == 0 && strcmp(cur->itemName, p->itemName) < 0) {
+                    swap(cur, p);
+                }
+                else if (strcmp(orderType, "createTime") == 0 && getTimestampByStr(cur->createTime) < getTimestampByStr(
+                             p->createTime)) {
+                    swap(cur, p);
+                }
+                else if (strcmp(orderType, "updateTime") == 0 && getTimestampByStr(cur->updateTime) <
+                         getTimestampByStr(p->updateTime)) {
+                    swap(cur, p);
+                }
+                p = p->next;
+            }
+            cur = cur->next;
+        }
+    }
 
     // 转为字符串返回前端
     csv = TinyCsv_dump(head);
@@ -501,7 +506,7 @@ int webuiapi_addItem(const char* token, const int itype, char* name, char* acc, 
     // int code = 0;
     // int code = 1;
     // token 鉴权
-    if (account.token == NULL || strcmp(token, account.token) != 0) {
+    if (webuiapi_checkToken(token)) {
         return 1;
     }
 
