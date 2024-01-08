@@ -61,31 +61,29 @@ static char* fmtYmdHMS(const char* fmt, const long long timestamp) {
 static long long getTimestamp() {
     time_t t = time(NULL);
     struct tm* tm = localtime(&t);
-    time_t timep;
-    timep = mktime(tm);
+    const time_t timep = mktime(tm);
     return (timep * 1000) + 0;
 }
 
 //Unixʱ�����ʡ�Ժ��룩
-static long long getTimestampByStr(char* str) {
+static long long getTimestampByStr(const char* str) {
     struct tm tm;
-    time_t timep;
     sscanf(str, "%d-%d-%d %d:%d:%d", &tm.tm_year, &tm.tm_mon, &tm.tm_mday, &tm.tm_hour, &tm.tm_min, &tm.tm_sec);
     tm.tm_year -= 1900;
     tm.tm_mon -= 1;
-    timep = mktime(&tm);
+    const time_t timep = mktime(&tm);
     //FMT�Ѿ���֧�ֺ�����
     return timep * 1000 + 0;
 }
 
 //base64����
-static char* encBase64(char* data, int size) {
+static char* encBase64(const char* data, int size) {
     if (data == NULL) return NULL;
     if (size == 0) size = strlen(data);
     char* base64 = malloc(size * 2 + 1);
     int i = 0, j = 0;
-    char* base64char = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     while (i < size) {
+        const char* base64char = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
         base64[j++] = base64char[(data[i] >> 2) & 0x3F];
         if (i + 1 < size) {
             base64[j++] = base64char[((data[i] & 0x3) << 4) | ((data[i + 1] >> 4) & 0xF)];
@@ -110,17 +108,17 @@ static char* encBase64(char* data, int size) {
 }
 
 //base64����
-static char* decBase64(char* base64, int* size) {
+static char* decBase64(const char* base64, int* size) {
     if (base64 == NULL) return NULL;
-    int len = strlen(base64);
+    const int len = strlen(base64);
     char* data = malloc(len + 1);
     int i = 0, j = 0;
-    char* base64char = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     while (i < len) {
-        int a = strchr(base64char, base64[i++]) - base64char;
-        int b = strchr(base64char, base64[i++]) - base64char;
-        int c = strchr(base64char, base64[i++]) - base64char;
-        int d = strchr(base64char, base64[i++]) - base64char;
+        const char* base64char = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+        const int a = strchr(base64char, base64[i++]) - base64char;
+        const int b = strchr(base64char, base64[i++]) - base64char;
+        const int c = strchr(base64char, base64[i++]) - base64char;
+        const int d = strchr(base64char, base64[i++]) - base64char;
         data[j++] = (a << 2) | (b >> 4);
         if (c != 64) {
             data[j++] = (b << 4) | (c >> 2);
@@ -136,7 +134,7 @@ static char* decBase64(char* base64, int* size) {
 }
 
 //crc32(ע�⣬�����Ǽ��ܣ����ǹ�ϣ)
-static unsigned int crc32(char* data, int size) {
+static unsigned int crc32(const char* data, int size) {
     if (data == NULL) return 0;
     if (size == 0) size = strlen(data);
     unsigned int crc = 0xFFFFFFFF;
@@ -155,7 +153,7 @@ static unsigned int crc32(char* data, int size) {
 }
 
 //rc4����/����
-static char* Rc4Core(char* data, int size, char* key, int keySize) {
+static char* Rc4Core(const char* data, int size, const char* key, int keySize) {
     if (data == NULL) return NULL;
     if (size == 0) size = strlen(data);
     if (key == NULL) return NULL;
@@ -170,7 +168,7 @@ static char* Rc4Core(char* data, int size, char* key, int keySize) {
     int j = 0;
     for (int i = 0; i < 256; i++) {
         j = (j + s[i] + k[i]) % 256;
-        char t = s[i];
+        const char t = s[i];
         s[i] = s[j];
         s[j] = t;
     }
@@ -179,7 +177,7 @@ static char* Rc4Core(char* data, int size, char* key, int keySize) {
     for (int n = 0; n < size; n++) {
         i = (i + 1) % 256;
         j = (j + s[i]) % 256;
-        char t = s[i];
+        const char t = s[i];
         s[i] = s[j];
         s[j] = t;
         rc4[n] = data[n] ^ s[(s[i] + s[j]) % 256];
@@ -191,11 +189,11 @@ static char* Rc4Core(char* data, int size, char* key, int keySize) {
 #define encRc4(...) Rc4Core(__VA_ARGS__)
 #define decRc4(...) Rc4Core(__VA_ARGS__)
 //�ļ���ȡ
-static char* readFile(char* path, int* size) {
+static char* readFile(const char* path, int* size) {
     FILE* fp = fopen(path, "rb");
     if (fp == NULL) return NULL;
     fseek(fp, 0, SEEK_END);
-    int len = ftell(fp);
+    const int len = ftell(fp);
     if (len == 0) {
         fclose(fp);
         return NULL;
@@ -211,7 +209,7 @@ static char* readFile(char* path, int* size) {
 }
 
 //�ļ�д��
-static int writeFile(char* path, char* data, int size) {
+static int writeFile(const char* path, const char* data, int size) {
     if (path == NULL) return 0;
     if (data == NULL) return 0;
     if (size == 0) size = strlen(data);
@@ -223,7 +221,7 @@ static int writeFile(char* path, char* data, int size) {
 }
 
 //�ļ�׷��
-static int appendFile(char* path, char* data, int size) {
+static int appendFile(const char* path, const char* data, int size) {
     if (path == NULL) return 0;
     if (data == NULL) return 0;
     if (size == 0) size = strlen(data);
@@ -235,7 +233,7 @@ static int appendFile(char* path, char* data, int size) {
 }
 
 //��ȡ�ļ���С
-static int getFileSize(char* path) {
+static int getFileSize(const char* path) {
     if (path == NULL) return 0;
     FILE* fp = fopen(path, "rb");
     if (fp == NULL) return 0;
@@ -246,7 +244,7 @@ static int getFileSize(char* path) {
 }
 
 //�ļ��Ƿ����
-static int fileExists(char* path) {
+static int fileExists(const char* path) {
     if (path == NULL) return 0;
     FILE* fp = fopen(path, "rb");
     if (fp == NULL) return 0;
@@ -259,7 +257,7 @@ static int dirExists(char* path) {
     if (path == NULL) return 0;
 #ifdef _WIN32
     //windows
-    DWORD attr = GetFileAttributesA(path);
+    const DWORD attr = GetFileAttributesA(path);
     if (attr == INVALID_FILE_ATTRIBUTES) return 0;
     return (attr & FILE_ATTRIBUTE_DIRECTORY) ? 1 : 0;
 #else

@@ -23,21 +23,21 @@ char* generateToken() {
 }
 
 
-char* generateItemName() {
-    char* itemName = malloc(sizeof(char) * 11);
-    srand(time(NULL));
-
-    const char charset[] = "0123456789";
-
-    for (int i = 0; i < 10; ++i) {
-        const int index = rand() % (int)(sizeof charset - 1);
-        itemName[i] = charset[index];
-    }
-
-    itemName[10] = '\0';
-
-    return itemName;
-}
+// char* generateItemName() {
+//     char* itemName = malloc(sizeof(char) * 11);
+//     srand(time(NULL));
+//
+//     const char charset[] = "0123456789";
+//
+//     for (int i = 0; i < 10; ++i) {
+//         const int index = rand() % (int)(sizeof charset - 1);
+//         itemName[i] = charset[index];
+//     }
+//
+//     itemName[10] = '\0';
+//
+//     return itemName;
+// }
 
 /**
     请完善此函数，实现登录功能
@@ -119,7 +119,7 @@ int webuiapi_register(char* acc, char* pwd) {
         current = current->next;
     }
 
-    TinyCsvWebUIData* new = new_TinyCsvWebUIData_ACCPWD(tinycsv_getuuid("inner"), generateItemName(), acc, pwd,
+    TinyCsvWebUIData* new = new_TinyCsvWebUIData_ACCPWD(tinycsv_getuuid("inner"), "registeredAcc", acc, pwd,
                                                         currentTime, currentTime);
     // 将新的节点链接至原链表的尾部
     if (current->itemName != NULL) {
@@ -224,18 +224,19 @@ void swap(TinyCsvWebUIData* a_p, TinyCsvWebUIData* b_p) {
     需要管理token与账号的关系，账号也会退出登录时，token也要失效，没退出但是直接重登陆，token也要失效
     需要管理uuid和数据列表的关系，它不能重复，uuid对应着每个item的唯一标识
     返回的指针一定要可以被释放（malloc或者realloc出来的指针），提交完成会自动走free流程
+    问题很大
 */
 char* webuiapi_getDataList(const char* token, const int sortType, const char* orderType, const int queryType,
                            char* search) {
     // token鉴权
-    if (strcmp(account.token, token) != 0) {
+    if (account.token == NULL || strcmp(account.token, token) != 0) {
         return NULL;
     }
 
     char* csv = readFile("../test.csv", NULL);
     TinyCsvWebUIData* head = TinyCsv_load(csv);
     TinyCsvWebUIData* cur = head;
-    const TinyCsvWebUIData* prev = NULL;
+    TinyCsvWebUIData* prev = NULL;
 
 
     // 先按照筛选条件挑出满足条件的元素
@@ -244,9 +245,10 @@ char* webuiapi_getDataList(const char* token, const int sortType, const char* or
         // 当元素的类型和函数指定的类型做 按位与 运算值为 0
         // 说明当前元素不是前端需要的元素 将该节点删除即可
         if ((cur->type & queryType) == 0) {
-            if (cur != head) {
-                prev = cur->next;
+            if (cur != head && prev != NULL) {
+                prev->next = cur->next;
             }
+            // 头节点情况
             else {
                 head = cur->next;
             }
@@ -259,53 +261,53 @@ char* webuiapi_getDataList(const char* token, const int sortType, const char* or
     // 当前节点重新指向链表头部
     cur = head;
     // 升序
-    if (sortType) {
-        while (cur != NULL) {
-            TinyCsvWebUIData* p = cur->next;
-            while (p != NULL) {
-                if (strcmp(orderType, "uuid") == 0 && cur->uuid > p->uuid) {
-                    swap(cur, p);
-                }
-                else if (strcmp(orderType, "itemName") == 0 && strcmp(cur->itemName, p->itemName) > 0) {
-                    swap(cur, p);
-                }
-                else if (strcmp(orderType, "createTime") == 0 && getTimestampByStr(cur->createTime) > getTimestampByStr(
-                             p->createTime)) {
-                    swap(cur, p);
-                }
-                else if (strcmp(orderType, "updateTime") == 0 && getTimestampByStr(cur->updateTime) >
-                         getTimestampByStr(p->updateTime)) {
-                    swap(cur, p);
-                }
-                p = p->next;
-            }
-            cur = cur->next;
-        }
-    }
-    // 降序
-    else {
-        while (cur != NULL) {
-            TinyCsvWebUIData* p = cur->next;
-            while (p != NULL) {
-                if (strcmp(orderType, "uuid") == 0 && cur->uuid < p->uuid) {
-                    swap(cur, p);
-                }
-                else if (strcmp(orderType, "itemName") == 0 && strcmp(cur->itemName, p->itemName) < 0) {
-                    swap(cur, p);
-                }
-                else if (strcmp(orderType, "createTime") == 0 && getTimestampByStr(cur->createTime) < getTimestampByStr(
-                             p->createTime)) {
-                    swap(cur, p);
-                }
-                else if (strcmp(orderType, "updateTime") == 0 && getTimestampByStr(cur->updateTime) <
-                         getTimestampByStr(p->updateTime)) {
-                    swap(cur, p);
-                }
-                p = p->next;
-            }
-            cur = cur->next;
-        }
-    }
+    // if (sortType) {
+    //     while (cur != NULL) {
+    //         TinyCsvWebUIData* p = cur->next;
+    //         while (p != NULL) {
+    //             if (strcmp(orderType, "uuid") == 0 && cur->uuid > p->uuid) {
+    //                 swap(cur, p);
+    //             }
+    //             else if (strcmp(orderType, "itemName") == 0 && strcmp(cur->itemName, p->itemName) > 0) {
+    //                 swap(cur, p);
+    //             }
+    //             else if (strcmp(orderType, "createTime") == 0 && getTimestampByStr(cur->createTime) > getTimestampByStr(
+    //                          p->createTime)) {
+    //                 swap(cur, p);
+    //             }
+    //             else if (strcmp(orderType, "updateTime") == 0 && getTimestampByStr(cur->updateTime) >
+    //                      getTimestampByStr(p->updateTime)) {
+    //                 swap(cur, p);
+    //             }
+    //             p = p->next;
+    //         }
+    //         cur = cur->next;
+    //     }
+    // }
+    // // 降序
+    // else {
+    //     while (cur != NULL) {
+    //         TinyCsvWebUIData* p = cur->next;
+    //         while (p != NULL) {
+    //             if (strcmp(orderType, "uuid") == 0 && cur->uuid < p->uuid) {
+    //                 swap(cur, p);
+    //             }
+    //             else if (strcmp(orderType, "itemName") == 0 && strcmp(cur->itemName, p->itemName) < 0) {
+    //                 swap(cur, p);
+    //             }
+    //             else if (strcmp(orderType, "createTime") == 0 && getTimestampByStr(cur->createTime) < getTimestampByStr(
+    //                          p->createTime)) {
+    //                 swap(cur, p);
+    //             }
+    //             else if (strcmp(orderType, "updateTime") == 0 && getTimestampByStr(cur->updateTime) <
+    //                      getTimestampByStr(p->updateTime)) {
+    //                 swap(cur, p);
+    //             }
+    //             p = p->next;
+    //         }
+    //         cur = cur->next;
+    //     }
+    // }
 
     // 转为字符串返回前端
     csv = TinyCsv_dump(head);
@@ -322,7 +324,7 @@ char* webuiapi_getDataList(const char* token, const int sortType, const char* or
 */
 char* webuiapi_getDataByUUID(const char* token, const char* uuid) {
     // token 鉴权
-    if (strcmp(token, account.token) != 0) {
+    if (account.token == NULL || strcmp(token, account.token) != 0) {
         return NULL;
     }
 
@@ -350,7 +352,7 @@ char* webuiapi_getDataByUUID(const char* token, const char* uuid) {
     需要管理uuid和数据列表的关系，它不能重复，uuid对应着每个item的唯一标识
     *已完成*
 */
-int webuiapi_editItem(const char* token, const char* uuid, char* itemName, char* string, const char* acc,
+int webuiapi_editItem(const char* token, const char* uuid, char* itemName, const char* string, const char* acc,
                       const char* pwd) {
     // 这里mock一个code为0的返回值
     // int code = 1;
@@ -409,7 +411,7 @@ int webuiapi_deleteItem(const char* token, const char* uuid) {
     // int code = 1;
 
     // token 鉴权
-    if (strcmp(token, account.token) != 0) {
+    if (account.token == NULL || strcmp(token, account.token) != 0) {
         return 1;
     }
 
@@ -467,6 +469,10 @@ int webuiapi_decryptFile(const char* token, const char* uuid) {
         if (strcmp(uuid, cur->uuid) == 0) {
             if (fileExists(cur->data.file)) {
                 if (writeFile(cur->data.file, decBase64(readFile(cur->data.file, NULL), 0), 0)) {
+                    // 解码后在数据库中删除该元素
+                    if (webuiapi_deleteItem(token, uuid)) {
+                        return 1;
+                    }
                     return 0;
                 }
                 // 写入错误
@@ -495,7 +501,7 @@ int webuiapi_addItem(const char* token, const int itype, char* name, char* acc, 
     // int code = 0;
     // int code = 1;
     // token 鉴权
-    if (strcmp(token, account.token) != 0) {
+    if (account.token == NULL || strcmp(token, account.token) != 0) {
         return 1;
     }
 

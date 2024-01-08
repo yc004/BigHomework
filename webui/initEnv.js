@@ -16,11 +16,11 @@ if (localStorage.getItem("userToken") == null) {
     userToken = localStorage.getItem("userToken");
 }
 //检查是否是GBK编码的后端服务器
-var Cxhr = new XMLHttpRequest();
+const Cxhr = new XMLHttpRequest();
 Cxhr.open("POST", serverUrl, true);
 Cxhr.onreadystatechange = function () {
-    if (Cxhr.readyState == 4 && Cxhr.status == 200) {
-        if (Cxhr.responseText != "GBK") {
+    if (Cxhr.readyState === 4 && Cxhr.status === 200) {
+        if (Cxhr.responseText !== "GBK") {
             isGBKBakend = false;
         }
     }
@@ -34,15 +34,15 @@ Cxhr.send("api=checkCharset");
  */
 function encHex(str) {
     if (str == null) return str;
-    var val = "";
-    var encoder = null;
+    let val = "";
+    let encoder = null;
     if (isGBKBakend) {
         encoder = new TextEncoder("GBK");
     } else {
         encoder = new TextEncoder("UTF-8");
     }
-    var bytes = encoder.encode(str);
-    for (var i = 0; i < bytes.length; i++) {
+    const bytes = encoder.encode(str);
+    for (let i = 0; i < bytes.length; i++) {
         val += bytes[i].toString(16);
     }
     return val;
@@ -55,18 +55,17 @@ function encHex(str) {
  */
 function decHex(hex) {
     if (hex == null) return hex;
-    var decoder = null;
+    let decoder = null;
     if (isGBKBakend) {
         decoder = new TextDecoder("GBK");
     } else {
         decoder = new TextDecoder("UTF-8");
     }
-    var bytes = new Uint8Array(hex.length / 2);
-    for (var i = 0; i < hex.length; i += 2) {
+    const bytes = new Uint8Array(hex.length / 2);
+    for (let i = 0; i < hex.length; i += 2) {
         bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
     }
-    val = decoder.decode(bytes);
-    return val;
+    return decoder.decode(bytes);
 }
 
 /**
@@ -83,7 +82,7 @@ function decHex(hex) {
  * @Note: token即认证令牌，如果发生任意一种登录失败的情况，token将为空。
  */
 function login(username, password, callback) {
-    var api = "login";
+    const api = "login";
     if (typeof callback != "function") {
         alert("login函数的callback参数必须是函数，请检查JS代码。");
         return;
@@ -108,9 +107,9 @@ function login(username, password, callback) {
     var xhr = new XMLHttpRequest();
     xhr.open("POST", serverUrl, true);
     xhr.onreadystatechange = function () {
-        if (xhr.readyState == 4) {
-            if (xhr.status == 200) {
-                if (xhr.responseText == "" || xhr.responseText == null) {
+        if (xhr.readyState === 4) {
+            if (xhr.status === 200) {
+                if (xhr.responseText === "" || xhr.responseText == null) {
                     callback(false, "账号或密码错误");
                     return;
                 }
@@ -295,7 +294,7 @@ function parseTinyCsv(csvStr) {
     // 扫描表格换行\r或者\r\n或者\n
     for (var i = 1; i < lines.length; i++) {
         //跳过空行
-        if (lines[i] == "") {
+        if (lines[i] === "") {
             continue;
         }
         var line = lines[i];
@@ -376,36 +375,36 @@ function getDataList(sortType, orderType, queryType, search, callback) {
     if (typeof sortType == "boolean") { //如果sort是布尔值，则转换为字符串，true转换为升序，false转换为降序
         sortType = sortType ? "asc" : "desc";
     }
-    if (sortType == "升序") {
+    if (sortType === "升序") {
         sortType = "asc";
-    } else if (sortType == "降序") {
+    } else if (sortType === "降序") {
         sortType = "desc";
     }
     if (typeof orderType == "undefined") {
         orderType = "uuid";
     }
-    if (orderType == "UUID排序") {
+    if (orderType === "UUID排序") {
         orderType = "uuid";
-    } else if (orderType == "创建时间排序") {
+    } else if (orderType === "创建时间排序") {
         orderType = "createTime";
-    } else if (orderType == "更新时间排序") {
+    } else if (orderType === "更新时间排序") {
         orderType = "updateTime";
-    } else if (orderType == "标题名排序") {
+    } else if (orderType === "标题名排序") {
         orderType = "itemName";
     }
     if (typeof queryType == "undefined") {
         queryType = "*";
     }
-    if (queryType.indexOf("文件") != -1) {
+    if (queryType.indexOf("文件") !== -1) {
         queryType = queryType.replace("文件", "file");
     }
-    if (queryType.indexOf("字符串") != -1) {
+    if (queryType.indexOf("字符串") !== -1) {
         queryType = queryType.replace("字符串", "string");
     }
-    if (queryType.indexOf("文字") != -1) {
+    if (queryType.indexOf("文字") !== -1) {
         queryType = queryType.replace("文字", "string");
     }
-    if (queryType.indexOf("账号密码") != -1) {
+    if (queryType.indexOf("账号密码") !== -1) {
         queryType = queryType.replace("账号密码", "accpwd");
     }
     if (typeof search == "undefined") {
@@ -416,9 +415,9 @@ function getDataList(sortType, orderType, queryType, search, callback) {
     var xhr = new XMLHttpRequest();
     xhr.open("POST", serverUrl, true);
     xhr.onreadystatechange = function () {
-        if (xhr.readyState == 4) {
-            if (xhr.status == 200) {
-                var csv = xhr.responseText;
+        if (xhr.readyState === 4) {
+            if (xhr.status === 200) {
+                const csv = xhr.responseText;
                 callback(true, parseTinyCsv(csv));
             } else {
                 callback(false, "网络错误");
@@ -440,18 +439,18 @@ function getDataList(sortType, orderType, queryType, search, callback) {
  * @Note: callback的参数: (ok, csv)
  */
 function getDataByUUID(uuid, callback) {
-    var api = "getDataByUUID";
+    const api = "getDataByUUID";
     if (typeof callback != "function") {
         alert("getDataByUUID函数的callback参数必须是函数，请检查JS代码。");
         return;
     }
-    var data = "api=" + api + "&token=" + userToken + "&uuid=" + uuid;
-    var xhr = new XMLHttpRequest();
+    const data = "api=" + api + "&token=" + userToken + "&uuid=" + uuid;
+    const xhr = new XMLHttpRequest();
     xhr.open("POST", serverUrl, true);
     xhr.onreadystatechange = function () {
-        if (xhr.readyState == 4) {
-            if (xhr.status == 200) {
-                var csv = xhr.responseText;
+        if (xhr.readyState === 4) {
+            if (xhr.status === 200) {
+                let csv = xhr.responseText;
                 csv = parseTinyCsv(csv);
                 callback(true, csv ? csv[0] : []);
             } else {
@@ -480,7 +479,7 @@ function getDataByUUID(uuid, callback) {
  * @Note: 0为成功，1为失败，2为uuid不存在。
  */
 function editItem(uuid, csv, callback) {
-    var api = "editItem";
+    const api = "editItem";
     if (typeof callback != "function") {
         alert("editItem函数的callback参数必须是函数，请检查JS代码。");
         return;
@@ -496,37 +495,37 @@ function editItem(uuid, csv, callback) {
         callback(false, "csv参数不能为空");
         return;
     }
-    if (typeof csv.itemName == "undefined" || csv.itemName == "") {
+    if (typeof csv.itemName == "undefined" || csv.itemName === "") {
         callback(false, "项目名不能为空");
         return;
     }
-    if (DATA.type == "string" && (typeof csv.string == "undefined" || csv.string == "")) {
+    if (DATA.type === "string" && (typeof csv.string == "undefined" || csv.string === "")) {
         callback(false, "字符串不能为空");
         return;
     }
-    if (DATA.type == "accpwd" && (typeof csv.acc == "undefined" || csv.acc == "")) {
+    if (DATA.type === "accpwd" && (typeof csv.acc == "undefined" || csv.acc === "")) {
         callback(false, "账号不能为空");
         return;
     }
-    if (DATA.type == "accpwd" && (typeof csv.pwd == "undefined" || csv.pwd == "")) {
+    if (DATA.type === "accpwd" && (typeof csv.pwd == "undefined" || csv.pwd === "")) {
         callback(false, "密码不能为空");
         return;
     }
-    var data = "api=" + api + "&token=" + userToken + "&uuid=" + uuid;
-    for (var key in csv) {
+    let data = "api=" + api + "&token=" + userToken + "&uuid=" + uuid;
+    for (const key in csv) {
         data += "&" + key + "=" + encHex(csv[key]);
     }
     var xhr = new XMLHttpRequest();
     xhr.open("POST", serverUrl, true);
     xhr.onreadystatechange = function () {
-        if (xhr.readyState == 4) {
-            if (xhr.status == 200) {
+        if (xhr.readyState === 4) {
+            if (xhr.status === 200) {
                 var msg = parseInt(xhr.responseText);
-                if (msg == 0) {
+                if (msg === 0) {
                     callback(true, "修改成功");
-                } else if (msg == 1) {
+                } else if (msg === 1) {
                     callback(false, "修改失败");
-                } else if (msg == 2) {
+                } else if (msg === 2) {
                     callback(false, "uuid不存在");
                 } else {
                     callback(false, "未知错误");

@@ -2,5 +2,7 @@
   "name": "electron启动HTML",
   "version": "0.0.1",
   "main": "./main.js",
-  "dependencies": {}
+  "dependencies": {
+    "electron": "^28.1.1"
+  }
 }

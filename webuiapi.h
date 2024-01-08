@@ -24,7 +24,7 @@ char* webuiapi_getDataList(const char* token, int sortType, const char* orderTyp
 
 char* webuiapi_getDataByUUID(const char* token, const char* uuid);
 
-int webuiapi_editItem(const char* token, const char* uuid, char* itemName, char* string, const char* acc, const char* pwd);
+int webuiapi_editItem(const char* token, const char* uuid, char* itemName, const char* string, const char* acc, const char* pwd);
 
 int webuiapi_deleteItem(const char* token, const char* uuid);
 
