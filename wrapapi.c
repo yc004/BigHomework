@@ -263,6 +263,8 @@ char* webuiapi_getDataList(char* token, const int sortType, const char* orderTyp
         return NULL;
     }
 
+    printf("%s", orderType);
+
     char* csv = readFile("../test.csv", NULL);
     TinyCsvWebUIData* head = TinyCsv_load(csv);
     TinyCsvWebUIData* cur = head;
@@ -303,6 +305,7 @@ char* webuiapi_getDataList(char* token, const int sortType, const char* orderTyp
         for (cur = head; cur != NULL; cur = cur->next) {
             target = cur;
             for (TinyCsvWebUIData* temp = cur->next; temp != NULL; temp = temp->next) {
+                int result = getTimestampByStr(cur->updateTime) > getTimestampByStr(temp->updateTime);
                 printf("Comparing: %s and %s\n", cur->updateTime, temp->updateTime);
                 if (strcmp(orderType, "uuid") == 0 && atoi(cur->uuid) > atoi(temp->uuid)) {
                     target = temp;
