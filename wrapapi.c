@@ -103,10 +103,6 @@ char* webuiapi_login(const char* acc, const char* pwd) {
  * 3.如果出现其他问题则返回1
  */
 int webuiapi_register(char* acc, char* pwd) {
-    // 这里mock一个code为0的返回值
-    // int code = 0;
-    // int code = 1;
-    // int code = 2;
     // 读取csv文件
     int size;
     char* file = readFile("../test.csv", &size);
@@ -157,7 +153,7 @@ int webuiapi_register(char* acc, char* pwd) {
 */
 int webuiapi_checkToken(char* token) {
     if (account.token == NULL || strcmp(account.token, token) != 0) {
-        webuiapi_quitToken(token);
+        // webuiapi_quitToken(token);
         return 1;
     }
     return 0;
@@ -261,7 +257,7 @@ char* webuiapi_getDataList(char* token, const int sortType, const char* orderTyp
         return NULL;
     }
 
-    printf("%s", orderType);
+    // printf("%s", orderType);
 
     char* csv = readFile("../test.csv", NULL);
     TinyCsvWebUIData* head = TinyCsv_load(csv);
@@ -541,9 +537,6 @@ int webuiapi_decryptFile(char* token, const char* uuid) {
     *已完成*
 */
 int webuiapi_addItem(char* token, const int itype, char* name, char* acc, char* pwd, char* string, const char* file) {
-    // 这里mock一个code为0的返回值
-    // int code = 0;
-    // int code = 1;
     // token 鉴权
     if (webuiapi_checkToken(token)) {
         return 1;
