@@ -280,7 +280,8 @@ char* webuiapi_getDataList(char* token, const int sortType, const char* orderTyp
         // 指定的文件类型筛选
         // 当元素的类型和函数指定的类型做 按位与 运算值为 0
         // 说明当前元素不是前端需要的元素 将该节点删除即可
-        if ((cur->type & queryType) == 0) {
+        // 将search参数和itemName进行匹配筛选 如果search参数为空字符串, 则不匹配
+        if ((cur->type & queryType) == 0 || (strcmp(search, "") == 0 ? FALSE : strstr(cur->itemName, search) == NULL)) {
             if (cur != head && prev != NULL) {
                 prev->next = cur->next;
                 cur = cur->next;
@@ -341,11 +342,11 @@ char* webuiapi_getDataList(char* token, const int sortType, const char* orderTyp
                 else if (strcmp(orderType, "createTime") == 0 && getTimestampByStr(cur->createTime) < getTimestampByStr(
                              temp->createTime)) {
                     target = temp;
-                             }
+                }
                 else if (strcmp(orderType, "updateTime") == 0 && getTimestampByStr(cur->updateTime) <
                          getTimestampByStr(temp->updateTime)) {
                     target = temp;
-                         }
+                }
             }
             // 找到最小值节点并交换
             swap(target, cur);
@@ -470,14 +471,16 @@ int webuiapi_deleteItem(char* token, const char* uuid) {
             if (cur == list && prev == NULL) {
                 list = cur->next;
                 // 如果需要删除的是文件 需要将存储在程序目录下的已加密文件同时删除
-                if (cur->type == TINY_CSV_TYPE_FILE && fileExists(parsefile(cur->data.file, NULL)) && deleteFile(parsefile(cur->data.file, NULL)) != 0) {
+                if (cur->type == TINY_CSV_TYPE_FILE && fileExists(parsefile(cur->data.file, NULL)) && deleteFile(
+                        parsefile(cur->data.file, NULL)) != 0) {
                     return 1;
                 }
             }
             else if (prev != NULL) {
                 prev->next = cur->next;
                 // 如果需要删除的是文件 需要将存储在程序目录下的已加密文件同时删除
-                if (cur->type == TINY_CSV_TYPE_FILE && fileExists(parsefile(cur->data.file, NULL)) && deleteFile(parsefile(cur->data.file, NULL)) != 0) {
+                if (cur->type == TINY_CSV_TYPE_FILE && fileExists(parsefile(cur->data.file, NULL)) && deleteFile(
+                        parsefile(cur->data.file, NULL)) != 0) {
                     return 1;
                 }
             }
