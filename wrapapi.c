@@ -70,6 +70,13 @@ char* webuiapi_login(const char* acc, const char* pwd) {
             strcpy(account.acc, acc);
             strcpy(account.pwd, pwd);
             strcpy(account.token, token);
+
+            // 在登录时同时检测应用所在位置是否存在存储加密文件的文件夹 没有的话就新建一个
+            if (!dirExists("./cryptedFile")) {
+                createDir("./cryptedFile");
+                printf("dir create successful!");
+            }
+
             return token;
         }
         current = current->next;
@@ -80,6 +87,7 @@ char* webuiapi_login(const char* acc, const char* pwd) {
     free(account.acc);
     free(account.pwd);
     free(account.token);
+
     return NULL;
 }
 
@@ -195,6 +203,29 @@ char* tinycsv_getuuid(const char* token) {
     // 让新的uuid为最大uuid + 1
     itoa(max + 1, uuid, 10);
     return uuid;
+}
+
+char* parsefile(const char* path, char** type) {
+    const char* fileName = NULL;
+    char* filePath = malloc(sizeof(char) * 128);
+    strcpy(filePath, path);
+    for (; *filePath != '\0'; ++filePath) {
+        if (*filePath == '\\') {
+            fileName = ++filePath;
+        }
+        else if (*filePath == '.') {
+            *filePath = '\0';
+            if (type != NULL) {
+                *type = ++filePath;
+            }
+        }
+    }
+
+    char* storePath = malloc(sizeof(char) * 128);
+    strcpy(storePath, "./cryptedFile/");
+    strcat(storePath, fileName);
+
+    return storePath;
 }
 
 void swap(TinyCsvWebUIData* a_p, TinyCsvWebUIData* b_p) {
@@ -461,7 +492,7 @@ int webuiapi_deleteItem(const char* token, const char* uuid) {
 */
 int webuiapi_decryptFile(const char* token, const char* uuid) {
     // token 鉴权
-    if (strcmp(account.token, token) != 0) {
+    if (webuiapi_checkToken(token)) {
         return 1;
     }
 
@@ -472,12 +503,16 @@ int webuiapi_decryptFile(const char* token, const char* uuid) {
     // 查找对应元素
     while (cur != NULL) {
         if (strcmp(uuid, cur->uuid) == 0) {
-            if (fileExists(cur->data.file)) {
-                if (writeFile(cur->data.file, decBase64(readFile(cur->data.file, NULL), 0), 0)) {
-                    // 解码后在数据库中删除该元素
-                    if (webuiapi_deleteItem(token, uuid)) {
-                        return 1;
-                    }
+            if (fileExists(parsefile(cur->data.file, NULL))) {
+                if (writeFile(cur->data.file, decBase64(readFile(parsefile(cur->data.file, NULL), NULL), 0), 0)) {
+                    // // 解码后在数据库中删除该元素
+                    // if (webuiapi_deleteItem(token, uuid)) {
+                    //     return 1;
+                    // }
+                    // return 0;
+
+                    // 写入成功后删除加密库里面的文件
+                    // deleteFile(parsefile(cur->data.file, NULL));
                     return 0;
                 }
                 // 写入错误
@@ -526,17 +561,34 @@ int webuiapi_addItem(const char* token, const int itype, char* name, char* acc, 
     char* currentTime = fmtYmdHMS("%Y/%m/%d %H:%M:%S", getTimestamp());
 
     if (itype == TINY_CSV_TYPE_FILE) {
+        // 对原始路径进行复制保留
+        char* filePath = malloc(sizeof(char) * 128);
+        strcpy(filePath, file);
+
         // 将文件路径记录至数据库
-        new = new_TinyCsvWebUIData_FILE(tinycsv_getuuid(token), name, file, currentTime, currentTime);
+        new = new_TinyCsvWebUIData_FILE(tinycsv_getuuid(token), name, filePath, currentTime, currentTime);
+        char* data = readFile(file, NULL);
+
+
+        // 解析传入的绝对路径地址 找到文件名 并找到文件类型后缀
+        char* fileType = NULL;
+        const char* storePath = parsefile(file, &fileType);
+
+
         // 对原文件进行加密
-        if (fileExists(file)) {
-            if (!writeFile(file, encBase64(readFile(file, NULL), 0), 0)) {
-                // 如果写入失败 返回错误代码 1
+        const int result = writeFile(storePath, encBase64(data, 0), 0);
+        if (result) {
+            // 写入成功则删除原文件
+            if (deleteFile(filePath)) {
+                // 删除失败则返回错误代码 1
                 return 1;
             }
+            free(filePath);
         }
-        // 指定的文件不存在
         else {
+            // 如果写入失败 返回错误代码 1
+            free(filePath);
+            free(data);
             return 1;
         }
     }
