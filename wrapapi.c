@@ -155,8 +155,9 @@ int webuiapi_register(char* acc, char* pwd) {
     需要管理token与账号的关系，账号也会退出登录时，token也要失效，没退出但是直接重登陆，token也要失效
     *已完成*
 */
-int webuiapi_checkToken(const char* token) {
+int webuiapi_checkToken(char* token) {
     if (account.token == NULL || strcmp(account.token, token) != 0) {
+        webuiapi_quitToken(token);
         return 1;
     }
     return 0;
@@ -256,7 +257,7 @@ void swap(TinyCsvWebUIData* a_p, TinyCsvWebUIData* b_p) {
     返回的指针一定要可以被释放（malloc或者realloc出来的指针），提交完成会自动走free流程
     问题很大
 */
-char* webuiapi_getDataList(const char* token, const int sortType, const char* orderType, const int queryType,
+char* webuiapi_getDataList(char* token, const int sortType, const char* orderType, const int queryType,
                            char* search) {
     // token鉴权
     if (webuiapi_checkToken(token)) {
@@ -441,13 +442,9 @@ int webuiapi_editItem(const char* token, const char* uuid, char* itemName, const
     需要管理uuid和数据列表的关系，它不能重复，uuid对应着每个item的唯一标识
     *已完成*
 */
-int webuiapi_deleteItem(const char* token, const char* uuid) {
-    // 这里mock一个code为0的返回值
-    // int code = 0;
-    // int code = 1;
-
+int webuiapi_deleteItem(char* token, const char* uuid) {
     // token 鉴权
-    if (account.token == NULL || strcmp(token, account.token) != 0) {
+    if (webuiapi_checkToken(token)) {
         return 1;
     }
 
@@ -465,9 +462,17 @@ int webuiapi_deleteItem(const char* token, const char* uuid) {
             changed = TRUE;
             if (cur == list && prev == NULL) {
                 list = cur->next;
+                // 如果需要删除的是文件 需要将存储在程序目录下的已加密文件同时删除
+                if (cur->type == TINY_CSV_TYPE_FILE && fileExists(parsefile(cur->data.file, NULL)) && deleteFile(parsefile(cur->data.file, NULL)) != 0) {
+                    return 1;
+                }
             }
             else if (prev != NULL) {
                 prev->next = cur->next;
+                // 如果需要删除的是文件 需要将存储在程序目录下的已加密文件同时删除
+                if (cur->type == TINY_CSV_TYPE_FILE && fileExists(parsefile(cur->data.file, NULL)) && deleteFile(parsefile(cur->data.file, NULL)) != 0) {
+                    return 1;
+                }
             }
         }
         prev = cur;
@@ -490,7 +495,7 @@ int webuiapi_deleteItem(const char* token, const char* uuid) {
     需要管理uuid和数据列表的关系，它不能重复，uuid对应着每个item的唯一标识
     *已完成*
 */
-int webuiapi_decryptFile(const char* token, const char* uuid) {
+int webuiapi_decryptFile(char* token, const char* uuid) {
     // token 鉴权
     if (webuiapi_checkToken(token)) {
         return 1;
@@ -536,7 +541,7 @@ int webuiapi_decryptFile(const char* token, const char* uuid) {
     需要管理uuid和数据列表的关系，它不能重复，uuid对应着每个item的唯一标识
     *已完成*
 */
-int webuiapi_addItem(const char* token, const int itype, char* name, char* acc, char* pwd, char* string, char* file) {
+int webuiapi_addItem(char* token, const int itype, char* name, char* acc, char* pwd, char* string, const char* file) {
     // 这里mock一个code为0的返回值
     // int code = 0;
     // int code = 1;
@@ -579,11 +584,10 @@ int webuiapi_addItem(const char* token, const int itype, char* name, char* acc, 
         const int result = writeFile(storePath, encBase64(data, 0), 0);
         if (result) {
             // 写入成功则删除原文件
-            if (deleteFile(filePath)) {
+            if (deleteFile(filePath) != 0) {
                 // 删除失败则返回错误代码 1
                 return 1;
             }
-            free(filePath);
         }
         else {
             // 如果写入失败 返回错误代码 1

@@ -16,21 +16,21 @@ char* webuiapi_login(const char* acc, const char* pwd);
 
 int webuiapi_register(char* acc, char* pwd);
 
-int webuiapi_checkToken(const char* token);
+int webuiapi_checkToken(char* token);
 
 void webuiapi_quitToken(char* token);
 
-char* webuiapi_getDataList(const char* token, int sortType, const char* orderType, int queryType, char* search);
+char* webuiapi_getDataList(char* token, int sortType, const char* orderType, int queryType, char* search);
 
 char* webuiapi_getDataByUUID(const char* token, const char* uuid);
 
 int webuiapi_editItem(const char* token, const char* uuid, char* itemName, const char* string, const char* acc, const char* pwd);
 
-int webuiapi_deleteItem(const char* token, const char* uuid);
+int webuiapi_deleteItem(char* token, const char* uuid);
 
-int webuiapi_decryptFile(const char* token, const char* uuid);
+int webuiapi_decryptFile(char* token, const char* uuid);
 
-int webuiapi_addItem(const char* token, int itype, char* name, char* acc, char* pwd, char* string, char* file);
+int webuiapi_addItem(char* token, int itype, char* name, char* acc, char* pwd, char* string, const char* file);
 
 unsigned long long webuiapi_getStudentId();
 
