@@ -2,7 +2,7 @@
 
 
 // 全局储存账户信息 用于和前端token进行验证
-static struct account {
+static struct {
     char* acc;
     char* pwd;
     char* token;
@@ -25,21 +25,21 @@ char* generateToken() {
 }
 
 
-// char* generateItemName() {
-//     char* itemName = malloc(sizeof(char) * 11);
-//     srand(time(NULL));
-//
-//     const char charset[] = "0123456789";
-//
-//     for (int i = 0; i < 10; ++i) {
-//         const int index = rand() % (int)(sizeof charset - 1);
-//         itemName[i] = charset[index];
-//     }
-//
-//     itemName[10] = '\0';
-//
-//     return itemName;
-// }
+/*char* generateItemName() {
+    char* itemName = malloc(sizeof(char) * 11);
+    srand(time(NULL));
+
+    const char charset[] = "0123456789";
+
+    for (int i = 0; i < 10; ++i) {
+        const int index = rand() % (int)(sizeof charset - 1);
+        itemName[i] = charset[index];
+    }
+
+    itemName[10] = '\0';
+
+    return itemName;
+}*/
 
 /**
     请完善此函数，实现登录功能
@@ -230,6 +230,9 @@ char* parsefile(const char* path, char** type) {
 }
 
 void swap(TinyCsvWebUIData* a_p, TinyCsvWebUIData* b_p) {
+    if (a_p == b_p) {
+        return;
+    }
     const TinyCsvWebUIData temp = *a_p;
     a_p->data = b_p->data;
     a_p->type = b_p->type;
@@ -294,57 +297,61 @@ char* webuiapi_getDataList(char* token, const int sortType, const char* orderTyp
         cur = cur->next;
     }
 
+
     // 使用选择排序对链表进行排序
     // 当前节点重新指向链表头部
-    cur = head;
+
+    TinyCsvWebUIData* target = NULL;
+
     // 升序
     if (sortType) {
-        while (cur != NULL) {
-            TinyCsvWebUIData* p = cur->next;
-            while (p != NULL) {
-                if (strcmp(orderType, "uuid") == 0 && cur->uuid > p->uuid) {
-                    swap(cur, p);
+        for (cur = head; cur != NULL; cur = cur->next) {
+            target = cur;
+            for (TinyCsvWebUIData* temp = cur->next; temp != NULL; temp = temp->next) {
+                if (strcmp(orderType, "uuid") == 0 && atoi(cur->uuid) > atoi(temp->uuid)) {
+                    target = temp;
                 }
-                else if (strcmp(orderType, "itemName") == 0 && strcmp(cur->itemName, p->itemName) > 0) {
-                    swap(cur, p);
+                else if (strcmp(orderType, "itemName") == 0 && strcmp(cur->itemName, temp->itemName) > 0) {
+                    target = temp;
                 }
                 else if (strcmp(orderType, "createTime") == 0 && getTimestampByStr(cur->createTime) > getTimestampByStr(
-                             p->createTime)) {
-                    swap(cur, p);
+                             temp->createTime)) {
+                    target = temp;
                 }
                 else if (strcmp(orderType, "updateTime") == 0 && getTimestampByStr(cur->updateTime) >
-                         getTimestampByStr(p->updateTime)) {
-                    swap(cur, p);
+                         getTimestampByStr(temp->updateTime)) {
+                    target = temp;
                 }
-                p = p->next;
             }
-            cur = cur->next;
+            // 找到最小值节点并交换
+            swap(target, cur);
         }
     }
     // 降序
     else {
-        while (cur != NULL) {
-            TinyCsvWebUIData* p = cur->next;
-            while (p != NULL) {
-                if (strcmp(orderType, "uuid") == 0 && cur->uuid < p->uuid) {
-                    swap(cur, p);
+        for (cur = head; cur != NULL; cur = cur->next) {
+            target = cur;
+            for (TinyCsvWebUIData* temp = cur->next; temp != NULL; temp = temp->next) {
+                if (strcmp(orderType, "uuid") == 0 && atoi(cur->uuid) < atoi(temp->uuid)) {
+                    target = temp;
                 }
-                else if (strcmp(orderType, "itemName") == 0 && strcmp(cur->itemName, p->itemName) < 0) {
-                    swap(cur, p);
+                else if (strcmp(orderType, "itemName") == 0 && strcmp(cur->itemName, temp->itemName) < 0) {
+                    target = temp;
                 }
                 else if (strcmp(orderType, "createTime") == 0 && getTimestampByStr(cur->createTime) < getTimestampByStr(
-                             p->createTime)) {
-                    swap(cur, p);
-                }
+                             temp->createTime)) {
+                    target = temp;
+                             }
                 else if (strcmp(orderType, "updateTime") == 0 && getTimestampByStr(cur->updateTime) <
-                         getTimestampByStr(p->updateTime)) {
-                    swap(cur, p);
-                }
-                p = p->next;
+                         getTimestampByStr(temp->updateTime)) {
+                    target = temp;
+                         }
             }
-            cur = cur->next;
+            // 找到最小值节点并交换
+            swap(target, cur);
         }
     }
+
 
     // 转为字符串返回前端
     csv = TinyCsv_dump(head);
