@@ -233,20 +233,16 @@ void swap(TinyCsvWebUIData* a_p, TinyCsvWebUIData* b_p) {
     if (a_p == b_p) {
         return;
     }
-    const TinyCsvWebUIData temp = *a_p;
-    a_p->data = b_p->data;
-    a_p->type = b_p->type;
-    a_p->uuid = b_p->uuid;
-    strcpy(a_p->createTime, b_p->createTime);
-    strcpy(a_p->updateTime, b_p->updateTime);
-    a_p->itemName = b_p->itemName;
 
-    b_p->uuid = temp.uuid;
-    b_p->type = temp.type;
-    strcpy(b_p->updateTime, temp.updateTime);
-    strcpy(b_p->createTime, temp.createTime);
-    b_p->data = temp.data;
-    b_p->itemName = temp.itemName;
+    TinyCsvWebUIData temp = *a_p;
+    *a_p = *b_p;
+    *b_p = temp;
+
+    // 如果链表节点有其他字段，也要进行适当的交换
+    // 例如，如果有指向下一个节点的指针，也需要交换
+    TinyCsvWebUIData* tempNext = a_p->next;
+    a_p->next = b_p->next;
+    b_p->next = tempNext;
 }
 
 /**
@@ -261,7 +257,7 @@ void swap(TinyCsvWebUIData* a_p, TinyCsvWebUIData* b_p) {
     问题很大
 */
 char* webuiapi_getDataList(char* token, const int sortType, const char* orderType, const int queryType,
-                           char* search) {
+                           const char* search) {
     // token鉴权
     if (webuiapi_checkToken(token)) {
         return NULL;
@@ -300,8 +296,6 @@ char* webuiapi_getDataList(char* token, const int sortType, const char* orderTyp
 
 
     // 使用选择排序对链表进行排序
-    // 当前节点重新指向链表头部
-
     TinyCsvWebUIData* target = NULL;
 
     // 升序
@@ -309,6 +303,7 @@ char* webuiapi_getDataList(char* token, const int sortType, const char* orderTyp
         for (cur = head; cur != NULL; cur = cur->next) {
             target = cur;
             for (TinyCsvWebUIData* temp = cur->next; temp != NULL; temp = temp->next) {
+                printf("Comparing: %s and %s\n", cur->updateTime, temp->updateTime);
                 if (strcmp(orderType, "uuid") == 0 && atoi(cur->uuid) > atoi(temp->uuid)) {
                     target = temp;
                 }
@@ -317,10 +312,12 @@ char* webuiapi_getDataList(char* token, const int sortType, const char* orderTyp
                 }
                 else if (strcmp(orderType, "createTime") == 0 && getTimestampByStr(cur->createTime) > getTimestampByStr(
                              temp->createTime)) {
+                    printf("Comparing timestamps: %lld and %lld\n", getTimestampByStr(cur->updateTime), getTimestampByStr(temp->updateTime));
                     target = temp;
                 }
                 else if (strcmp(orderType, "updateTime") == 0 && getTimestampByStr(cur->updateTime) >
                          getTimestampByStr(temp->updateTime)) {
+                    printf("Comparing timestamps: %lld and %lld\n", getTimestampByStr(cur->updateTime), getTimestampByStr(temp->updateTime));
                     target = temp;
                 }
             }

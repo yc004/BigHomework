@@ -68,7 +68,7 @@ static long long getTimestamp() {
 //Unixʱ�����ʡ�Ժ��룩
 static long long getTimestampByStr(const char* str) {
     struct tm tm;
-    sscanf(str, "%d-%d-%d %d:%d:%d", &tm.tm_year, &tm.tm_mon, &tm.tm_mday, &tm.tm_hour, &tm.tm_min, &tm.tm_sec);
+    sscanf(str, "%d/%d/%d %d:%d:%d", &tm.tm_year, &tm.tm_mon, &tm.tm_mday, &tm.tm_hour, &tm.tm_min, &tm.tm_sec);
     tm.tm_year -= 1900;
     tm.tm_mon -= 1;
     const time_t timep = mktime(&tm);

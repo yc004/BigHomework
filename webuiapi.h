@@ -20,7 +20,7 @@ int webuiapi_checkToken(char* token);
 
 void webuiapi_quitToken(char* token);
 
-char* webuiapi_getDataList(char* token, int sortType, const char* orderType, int queryType, char* search);
+char* webuiapi_getDataList(char* token, int sortType, const char* orderType, int queryType, const char* search);
 
 char* webuiapi_getDataByUUID(const char* token, const char* uuid);
 
