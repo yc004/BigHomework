@@ -234,12 +234,10 @@ void swap(TinyCsvWebUIData* a_p, TinyCsvWebUIData* b_p) {
         return;
     }
 
-    TinyCsvWebUIData temp = *a_p;
+    const TinyCsvWebUIData temp = *a_p;
     *a_p = *b_p;
     *b_p = temp;
 
-    // 如果链表节点有其他字段，也要进行适当的交换
-    // 例如，如果有指向下一个节点的指针，也需要交换
     TinyCsvWebUIData* tempNext = a_p->next;
     a_p->next = b_p->next;
     b_p->next = tempNext;
@@ -305,22 +303,21 @@ char* webuiapi_getDataList(char* token, const int sortType, const char* orderTyp
         for (cur = head; cur != NULL; cur = cur->next) {
             target = cur;
             for (TinyCsvWebUIData* temp = cur->next; temp != NULL; temp = temp->next) {
-                int result = getTimestampByStr(cur->updateTime) > getTimestampByStr(temp->updateTime);
-                printf("Comparing: %s and %s\n", cur->updateTime, temp->updateTime);
-                if (strcmp(orderType, "uuid") == 0 && atoi(cur->uuid) > atoi(temp->uuid)) {
+                // printf("Comparing: %s and %s\n", cur->updateTime, temp->updateTime);
+                if (strcmp(orderType, "uuid") == 0 && atoi(target->uuid) > atoi(temp->uuid)) {
                     target = temp;
                 }
-                else if (strcmp(orderType, "itemName") == 0 && strcmp(cur->itemName, temp->itemName) > 0) {
+                else if (strcmp(orderType, "itemName") == 0 && strcmp(target->itemName, temp->itemName) > 0) {
                     target = temp;
                 }
-                else if (strcmp(orderType, "createTime") == 0 && getTimestampByStr(cur->createTime) > getTimestampByStr(
+                else if (strcmp(orderType, "createTime") == 0 && getTimestampByStr(target->createTime) > getTimestampByStr(
                              temp->createTime)) {
-                    printf("Comparing timestamps: %lld and %lld\n", getTimestampByStr(cur->updateTime), getTimestampByStr(temp->updateTime));
+                    // printf("Comparing timestamps: %lld and %lld\n", getTimestampByStr(cur->updateTime), getTimestampByStr(temp->updateTime));
                     target = temp;
                 }
-                else if (strcmp(orderType, "updateTime") == 0 && getTimestampByStr(cur->updateTime) >
+                else if (strcmp(orderType, "updateTime") == 0 && getTimestampByStr(target->updateTime) >
                          getTimestampByStr(temp->updateTime)) {
-                    printf("Comparing timestamps: %lld and %lld\n", getTimestampByStr(cur->updateTime), getTimestampByStr(temp->updateTime));
+                    // printf("Comparing timestamps: %lld and %lld\n", getTimestampByStr(cur->updateTime), getTimestampByStr(temp->updateTime));
                     target = temp;
                 }
             }
@@ -333,17 +330,17 @@ char* webuiapi_getDataList(char* token, const int sortType, const char* orderTyp
         for (cur = head; cur != NULL; cur = cur->next) {
             target = cur;
             for (TinyCsvWebUIData* temp = cur->next; temp != NULL; temp = temp->next) {
-                if (strcmp(orderType, "uuid") == 0 && atoi(cur->uuid) < atoi(temp->uuid)) {
+                if (strcmp(orderType, "uuid") == 0 && atoi(target->uuid) < atoi(temp->uuid)) {
                     target = temp;
                 }
-                else if (strcmp(orderType, "itemName") == 0 && strcmp(cur->itemName, temp->itemName) < 0) {
+                else if (strcmp(orderType, "itemName") == 0 && strcmp(target->itemName, temp->itemName) < 0) {
                     target = temp;
                 }
-                else if (strcmp(orderType, "createTime") == 0 && getTimestampByStr(cur->createTime) < getTimestampByStr(
+                else if (strcmp(orderType, "createTime") == 0 && getTimestampByStr(target->createTime) < getTimestampByStr(
                              temp->createTime)) {
                     target = temp;
                 }
-                else if (strcmp(orderType, "updateTime") == 0 && getTimestampByStr(cur->updateTime) <
+                else if (strcmp(orderType, "updateTime") == 0 && getTimestampByStr(target->updateTime) <
                          getTimestampByStr(temp->updateTime)) {
                     target = temp;
                 }
@@ -520,14 +517,6 @@ int webuiapi_decryptFile(char* token, const char* uuid) {
         if (strcmp(uuid, cur->uuid) == 0) {
             if (fileExists(parsefile(cur->data.file, NULL))) {
                 if (writeFile(cur->data.file, decBase64(readFile(parsefile(cur->data.file, NULL), NULL), 0), 0)) {
-                    // // 解码后在数据库中删除该元素
-                    // if (webuiapi_deleteItem(token, uuid)) {
-                    //     return 1;
-                    // }
-                    // return 0;
-
-                    // 写入成功后删除加密库里面的文件
-                    // deleteFile(parsefile(cur->data.file, NULL));
                     return 0;
                 }
                 // 写入错误
