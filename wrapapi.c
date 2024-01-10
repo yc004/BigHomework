@@ -54,7 +54,7 @@ char* webuiapi_login(const char* acc, const char* pwd) {
     // 这里mock一个token，实际应用中请绑定账号和密码与token关系
     char* token = generateToken();
 
-    char* file = readFile("../test.csv", NULL);
+    char* file = readFile("../dataBase.csv", NULL);
     const TinyCsvWebUIData* list = TinyCsv_load(file);
     const TinyCsvWebUIData* current = list;
     free(file);
@@ -105,7 +105,7 @@ char* webuiapi_login(const char* acc, const char* pwd) {
 int webuiapi_register(char* acc, char* pwd) {
     // 读取csv文件
     int size;
-    char* file = readFile("../test.csv", &size);
+    char* file = readFile("../dataBase.csv", &size);
     TinyCsvWebUIData* list = TinyCsv_load(file);
     TinyCsvWebUIData* current = list;
     const char* currentTime = fmtYmdHMS("%Y/%m/%d %H:%M:%S", getTimestamp());
@@ -135,7 +135,7 @@ int webuiapi_register(char* acc, char* pwd) {
         list = new;
     }
 
-    if (writeFile("../test.csv", TinyCsv_dump(list), 0)) {
+    if (writeFile("../dataBase.csv", TinyCsv_dump(list), 0)) {
         // 正常结束
         return 0;
     }
@@ -183,7 +183,7 @@ void webuiapi_quitToken(char* token) {
     *已完成*
 */
 char* tinycsv_getuuid(const char* token) {
-    char* csv = readFile("../test.csv", NULL);
+    char* csv = readFile("../dataBase.csv", NULL);
     const TinyCsvWebUIData* list = TinyCsv_load(csv);
     const TinyCsvWebUIData* cur = list;
 
@@ -259,7 +259,7 @@ char* webuiapi_getDataList(char* token, const int sortType, const char* orderTyp
 
     // printf("%s", orderType);
 
-    char* csv = readFile("../test.csv", NULL);
+    char* csv = readFile("../dataBase.csv", NULL);
     TinyCsvWebUIData* head = TinyCsv_load(csv);
     TinyCsvWebUIData* cur = head;
     TinyCsvWebUIData* prev = NULL;
@@ -366,7 +366,7 @@ char* webuiapi_getDataByUUID(const char* token, const char* uuid) {
         return NULL;
     }
 
-    char* csv = readFile("../test.csv", NULL);
+    char* csv = readFile("../dataBase.csv", NULL);
     const TinyCsvWebUIData* list = TinyCsv_load(csv);
     const TinyCsvWebUIData* cur = list;
 
@@ -400,7 +400,7 @@ int webuiapi_editItem(const char* token, const char* uuid, char* itemName, const
     }
 
     // 读取文件
-    char* csv = readFile("../test.csv", NULL);
+    char* csv = readFile("../dataBase.csv", NULL);
     TinyCsvWebUIData* list = TinyCsv_load(csv);
     TinyCsvWebUIData* cur = list;
     free(csv);
@@ -424,7 +424,7 @@ int webuiapi_editItem(const char* token, const char* uuid, char* itemName, const
             free(currentTime);
 
             // 数据写入文件
-            if (writeFile("../test.csv", TinyCsv_dump(list), 0)) {
+            if (writeFile("../dataBase.csv", TinyCsv_dump(list), 0)) {
                 return 0;
             }
             return 1;
@@ -450,7 +450,7 @@ int webuiapi_deleteItem(char* token, const char* uuid) {
     }
 
     // 读取文件
-    char* csv = readFile("../test.csv", NULL);
+    char* csv = readFile("../dataBase.csv", NULL);
     TinyCsvWebUIData* list = TinyCsv_load(csv);
     TinyCsvWebUIData* cur = list;
     TinyCsvWebUIData* prev = NULL;
@@ -483,7 +483,7 @@ int webuiapi_deleteItem(char* token, const char* uuid) {
     }
 
     if (changed) {
-        if (writeFile("../test.csv", TinyCsv_dump(list), 0)) {
+        if (writeFile("../dataBase.csv", TinyCsv_dump(list), 0)) {
             return 0;
         }
         return 1;
@@ -504,7 +504,7 @@ int webuiapi_decryptFile(char* token, const char* uuid) {
         return 1;
     }
 
-    char* csv = readFile("../test.csv", NULL);
+    char* csv = readFile("../dataBase.csv", NULL);
     const TinyCsvWebUIData* list = TinyCsv_load(csv);
     const TinyCsvWebUIData* cur = list;
 
@@ -512,7 +512,7 @@ int webuiapi_decryptFile(char* token, const char* uuid) {
     while (cur != NULL) {
         if (strcmp(uuid, cur->uuid) == 0) {
             if (fileExists(parsefile(cur->data.file, NULL))) {
-                if (writeFile(cur->data.file, decBase64(readFile(parsefile(cur->data.file, NULL), NULL), 0), 0)) {
+                if (writeFile(cur->data.file, Rc4Core(readFile(parsefile(cur->data.file, NULL), NULL), 0, "yuilxin", 0), 0)) {
                     return 0;
                 }
                 // 写入错误
@@ -543,7 +543,7 @@ int webuiapi_addItem(char* token, const int itype, char* name, char* acc, char* 
     }
 
     // 读取文件
-    char* csv = readFile("../test.csv", NULL);
+    char* csv = readFile("../dataBase.csv", NULL);
     TinyCsvWebUIData* list = TinyCsv_load(csv);
     TinyCsvWebUIData* tail = list;
     free(csv);
@@ -573,7 +573,7 @@ int webuiapi_addItem(char* token, const int itype, char* name, char* acc, char* 
 
 
         // 对原文件进行加密
-        const int result = writeFile(storePath, encBase64(data, 0), 0);
+        const int result = writeFile(storePath, Rc4Core(data, 0, "yuilxin", 0), 0);
         if (result) {
             // 写入成功则删除原文件
             if (deleteFile(filePath) != 0) {
@@ -600,7 +600,7 @@ int webuiapi_addItem(char* token, const int itype, char* name, char* acc, char* 
     tail->next = new;
 
     // 转换为字符串并写入文件
-    if (writeFile("../test.csv", TinyCsv_dump(list), 0)) {
+    if (writeFile("../dataBase.csv", TinyCsv_dump(list), 0)) {
         return 0;
     }
     return 1;
