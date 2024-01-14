@@ -6,6 +6,7 @@ static struct {
     char* acc;
     char* pwd;
     char* token;
+    long long timeStamp; // 用于记录token生成时间
 } account;
 
 
@@ -25,21 +26,6 @@ char* generateToken() {
 }
 
 
-/*char* generateItemName() {
-    char* itemName = malloc(sizeof(char) * 11);
-    srand(time(NULL));
-
-    const char charset[] = "0123456789";
-
-    for (int i = 0; i < 10; ++i) {
-        const int index = rand() % (int)(sizeof charset - 1);
-        itemName[i] = charset[index];
-    }
-
-    itemName[10] = '\0';
-
-    return itemName;
-}*/
 
 /**
     请完善此函数，实现登录功能
@@ -70,6 +56,7 @@ char* webuiapi_login(const char* acc, const char* pwd) {
             strcpy(account.acc, acc);
             strcpy(account.pwd, pwd);
             strcpy(account.token, token);
+            account.timeStamp = getTimestamp();
 
             // 在登录时同时检测应用所在位置是否存在存储加密文件的文件夹 没有的话就新建一个
             if (!dirExists("./cryptedFile")) {
@@ -152,8 +139,15 @@ int webuiapi_register(char* acc, char* pwd) {
     *已完成*
 */
 int webuiapi_checkToken(char* token) {
+    // 此处加入token超时检测
+    // 超时将会自动强制退出 需要用户重新登录
     if (account.token == NULL || strcmp(account.token, token) != 0) {
-        // webuiapi_quitToken(token);
+        webuiapi_quitToken(token);
+        return 1;
+    }
+    // token有效期一个小时
+    if (getTimestamp() - account.timeStamp > 3600000ll) {
+        webuiapi_quitToken(token);
         return 1;
     }
     return 0;
@@ -168,9 +162,13 @@ int webuiapi_checkToken(char* token) {
 */
 void webuiapi_quitToken(char* token) {
     // 让当前后台账户的token恢复为空字符串 token失效
-    free(account.acc);
-    free(account.pwd);
-    free(account.token);
+    if (account.acc != NULL && account.pwd != NULL && account.token != NULL) {
+        free(account.acc);
+        free(account.pwd);
+        free(account.token);
+    }
+    account.token = NULL;
+    account.timeStamp = 0ll;
     // free(token);
 }
 
